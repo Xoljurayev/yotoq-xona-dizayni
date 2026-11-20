@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Yotoq xona 2-variant</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: bitta ustun — tepada 3D sahna, pastida masshtabdagi plan va o'lchamlar/materiallar */
+:root{
+  --bg:#F1F0ED; --surface:#FFFFFF; --fg:#23211E; --muted:#6F6A63; --line:#DCD8D1;
+  --accent:#8B6542; --accent-ink:#FFFFFF; --stage:#E6E2DB;
+  --plan-bed:#E9E3D9; --plan-soft:#B9C4CC; --plan-closet:#EFE8DC; --plan-wood:#C49A6C;
+  --font-body:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#151513; --surface:#1E1D1B; --fg:#ECE8E2; --muted:#A39D94; --line:#35322E;
+    --accent:#CDA57B; --accent-ink:#1B140E; --stage:#25231F;
+    --plan-bed:#3A3631; --plan-soft:#4E5A63; --plan-closet:#2D2A25; --plan-wood:#9A7650;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#151513; --surface:#1E1D1B; --fg:#ECE8E2; --muted:#A39D94; --line:#35322E;
+  --accent:#CDA57B; --accent-ink:#1B140E; --stage:#25231F;
+  --plan-bed:#3A3631; --plan-soft:#4E5A63; --plan-closet:#2D2A25; --plan-wood:#9A7650;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--fg); font-family:var(--font-body); font-size:15px; line-height:1.55;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:20px 48px;
+}
+.wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:22px}
+header{display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px 28px}
+header .t{min-width:0}
+.eyebrow{font-family:var(--font-mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent)}
+h1{font-size:clamp(28px,4.4vw,44px); line-height:1.05; margin:.15em 0 .2em; font-weight:800; letter-spacing:-.02em; text-wrap:balance}
+.lead{margin:0; color:var(--muted); max-width:62ch}
+.facts{display:flex; gap:8px; flex-wrap:wrap}
+.fact{font-family:var(--font-mono); font-size:13px; padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:var(--surface); font-variant-numeric:tabular-nums; white-space:nowrap}
+
+.stage-wrap{position:relative; border-radius:14px; overflow:hidden; background:var(--stage); border:1px solid var(--line)}
+#stage{width:100%; height:clamp(380px, 64vh, 700px); touch-action:none}
+#stage canvas{display:block; width:100%; height:100%}
+.toolbar{position:absolute; left:10px; right:10px; bottom:10px; display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:flex-end; pointer-events:none}
+.seg{display:flex; flex-wrap:wrap; gap:4px; padding:4px; border-radius:12px; background:color-mix(in srgb, var(--surface) 88%, transparent); border:1px solid var(--line); backdrop-filter:blur(8px); pointer-events:auto}
+.seg button{font:600 13px/1 var(--font-body); color:var(--fg); background:transparent; border:0; border-radius:8px; padding:9px 11px; cursor:pointer}
+.seg button:hover{background:color-mix(in srgb, var(--accent) 14%, transparent)}
+.seg button[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink)}
+.seg button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.hint{position:absolute; top:10px; left:10px; font-size:12px; color:var(--muted); background:color-mix(in srgb, var(--surface) 80%, transparent); padding:5px 9px; border-radius:8px; pointer-events:none}
+.err{position:absolute; inset:0; display:grid; place-items:center; text-align:center; padding:24px; color:var(--muted)}
+
+.grid{display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); gap:18px}
+@media (max-width:900px){ .grid{grid-template-columns:minmax(0,1fr)} }
+.card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px; min-width:0}
+.card h2{font-size:17px; margin:0 0 12px; font-weight:700}
+.plan-scroll{overflow-x:auto}
+.plan-scroll svg{display:block; width:100%; min-width:340px; height:auto}
+svg text{font-family:var(--font-mono); fill:var(--fg)}
+svg .m{fill:var(--muted)}
+table{width:100%; border-collapse:collapse; font-size:14px}
+td{padding:7px 0; border-bottom:1px solid var(--line); vertical-align:top}
+td:last-child{text-align:right; font-family:var(--font-mono); font-variant-numeric:tabular-nums; white-space:nowrap; padding-left:12px}
+tr.sum td{font-weight:700; border-bottom:0}
+.sw{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px}
+.sw div{display:flex; gap:10px; align-items:center; font-size:13px; min-width:0}
+.sw i{flex:none; width:30px; height:30px; border-radius:8px; border:1px solid var(--line)}
+.todo{margin:0; padding-left:18px; color:var(--muted)}
+.todo b{color:var(--fg); font-weight:600}
+.stack{display:flex; flex-direction:column; gap:18px; min-width:0}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+</style>
+
+<style>
+html{color-scheme:light}
+body{margin:0}
+.back{display:inline-block; align-self:flex-start; font:600 14px/1 var(--font-body); color:var(--accent); text-decoration:none; padding:8px 12px; border:1px solid var(--line); border-radius:999px; background:var(--surface)}
+.back:hover{border-color:var(--accent)}
+.back:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="./">← Variantlar</a>
+
+  <header>
+    <div class="t">
+      <div class="eyebrow">Loyiha · 2-variant · 3D ko'rinish</div>
+      <h1>Yotoq xona, ikki qavatli</h1>
+      <p class="lead">Karavot pastda, past podiumda. Ustida antresol: televizor ko'rib dam olish va dars qilish joyi. Antresolga 6 pog'onali zina chiqadi, har pog'onada tortma bor. Gardirob 1-variantdagidek.</p>
+    </div>
+    <div class="facts">
+      <span class="fact">3.64 × 2.88 m</span>
+      <span class="fact">shift 2.80 m</span>
+      <span class="fact">antresol 1.37 m</span>
+    </div>
+  </header>
+
+  <div class="stage-wrap">
+    <div id="stage" aria-label="Yotoq xonaning 3D modeli"></div>
+    <div class="hint" id="hint">Barmoq yoki sichqoncha bilan aylantiring · ikki barmoq bilan yaqinlashtiring</div>
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="Ko'rinish">
+        <button id="v-corner" data-view="corner" aria-pressed="true">Umumiy</button>
+        <button id="v-door" data-view="door" aria-pressed="false">Eshikdan</button>
+        <button id="v-bed" data-view="bed" aria-pressed="false">Karavot</button>
+        <button id="v-loft" data-view="loft" aria-pressed="false">Antresol</button>
+        <button id="v-stair" data-view="stair" aria-pressed="false">Zina</button>
+        <button id="v-closet" data-view="closet" aria-pressed="false">Gardirob ichi</button>
+        <button id="v-top" data-view="top" aria-pressed="false">Tepadan</button>
+      </div>
+      <div class="seg" role="group" aria-label="Sozlamalar">
+        <button id="t-door" aria-pressed="true">Eshik ochiq</button>
+        <button id="t-night" aria-pressed="false">Kechki yorug'lik</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Plan, tepadan (masshtab 1:50 nisbatda)</h2>
+      <div class="plan-scroll">
+      <svg viewBox="-78 -74 520 452" role="img" aria-label="Xona plani o'lchamlari bilan">
+        <defs>
+          <pattern id="hang" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="6" height="6" fill="var(--plan-closet)"/>
+            <line x1="0" y1="0" x2="0" y2="6" stroke="var(--muted)" stroke-width="1" opacity=".45"/>
+          </pattern>
+        </defs>
+        <!-- gardirob ichi -->
+        <rect x="268" y="0" width="96" height="176" fill="var(--plan-closet)"/>
+        <rect x="268" y="0" width="96" height="55" fill="url(#hang)"/>
+        <line x1="268" y1="28" x2="364" y2="28" stroke="var(--fg)" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <rect x="268" y="56" width="96" height="55" fill="url(#hang)"/>
+        <line x1="268" y1="85" x2="364" y2="85" stroke="var(--fg)" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="316" y="20" font-size="8" text-anchor="middle" class="m">1-qator ×2 · quti</text>
+        <text x="316" y="76" font-size="8" text-anchor="middle" class="m">2-qator ×2</text>
+        <rect x="269" y="1" width="94" height="109" fill="none" stroke="var(--plan-wood)" stroke-width="1.5" stroke-dasharray="5 3"/>
+        <text x="316" y="104" font-size="7.5" text-anchor="middle" class="m">pastda quti, tortma ↓</text>
+        <text x="316" y="140" font-size="9" text-anchor="middle">turish joyi</text>
+        <text x="316" y="152" font-size="8" text-anchor="middle" class="m">0.96 × 0.66</text>
+        <!-- karavot -->
+        <rect x="50" y="0" width="210" height="175" fill="var(--plan-bed)" stroke="var(--fg)" stroke-width="1.2"/>
+        <rect x="255" y="0" width="5" height="175" fill="var(--plan-soft)"/>
+        <rect x="222" y="12" width="28" height="70" rx="8" fill="var(--surface)" stroke="var(--muted)"/>
+        <rect x="222" y="92" width="28" height="70" rx="8" fill="var(--surface)" stroke="var(--muted)"/>
+        <line x1="190" y1="0" x2="190" y2="175" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="125" y="78" font-size="12" text-anchor="middle">KARAVOT (pastda)</text>
+        <text x="125" y="94" font-size="10" text-anchor="middle" class="m">2.10 × 1.75 · podium</text>
+        <text x="140" y="232" font-size="10" text-anchor="middle" class="m">bo'sh joy 1.10</text>
+        <!-- antresol (karavot ustida) -->
+        <rect x="47" y="0" width="213" height="178" fill="none" stroke="var(--plan-wood)" stroke-width="2.5" stroke-dasharray="7 4"/>
+        <text x="153" y="122" font-size="9.5" text-anchor="middle" fill="var(--plan-wood)" style="fill:var(--plan-wood)">ustida ANTRESOL, pol 1.37</text>
+        <text x="153" y="136" font-size="8.5" text-anchor="middle" class="m">divan · past stol · TV</text>
+        <!-- zina: 5 pog'ona + 6-pog'ona (maydoncha), tepaga — devor tomon -->
+        <g stroke="var(--fg)" stroke-width="1">
+          <rect x="0" y="146" width="47" height="29" fill="var(--plan-closet)"/>
+          <rect x="0" y="117" width="47" height="29" fill="var(--plan-closet)"/>
+          <rect x="0" y="88" width="47" height="29" fill="var(--plan-closet)"/>
+          <rect x="0" y="59" width="47" height="29" fill="var(--plan-closet)"/>
+          <rect x="0" y="30" width="47" height="29" fill="var(--plan-closet)"/>
+          <rect x="0" y="0" width="47" height="30" fill="var(--plan-wood)"/>
+        </g>
+        <g font-size="9" text-anchor="middle">
+          <text x="23" y="164">1</text><text x="23" y="135">2</text><text x="23" y="106">3</text>
+          <text x="23" y="77">4</text><text x="23" y="48">5</text><text x="23" y="19">6</text>
+        </g>
+        <text x="23" y="196" font-size="9" text-anchor="middle">zina ↑</text>
+        <rect x="47" y="175" width="3" height="3" fill="var(--fg)"/>
+        <!-- gardirob devorlari -->
+        <rect x="260" y="0" width="8" height="184" fill="var(--fg)"/>
+        <rect x="260" y="176" width="12" height="8" fill="var(--fg)"/>
+        <rect x="332" y="176" width="32" height="8" fill="var(--fg)"/>
+        <path d="M272 180 h60" stroke="var(--plan-wood)" stroke-width="3"/>
+        <text x="302" y="198" font-size="9" text-anchor="middle" class="m">kirish (arka)</text>
+        <!-- xona devorlari -->
+        <path d="M0 0 H364 V288 M0 0 V288 H260 M345 288 H364" fill="none" stroke="var(--fg)" stroke-width="7" stroke-linecap="square"/>
+        <!-- eshik -->
+        <line x1="345" y1="288" x2="345" y2="203" stroke="var(--fg)" stroke-width="3"/>
+        <path d="M260 288 A85 85 0 0 1 345 203" fill="none" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="302" y="306" font-size="10" text-anchor="middle">eshik 0.85</text>
+        <!-- o'lcham: tepa, qismlar -->
+        <g stroke="var(--muted)" stroke-width="1">
+          <line x1="0" y1="-22" x2="364" y2="-22"/>
+          <line x1="0" y1="-28" x2="0" y2="-16"/><line x1="50" y1="-28" x2="50" y2="-16"/>
+          <line x1="260" y1="-28" x2="260" y2="-16"/><line x1="268" y1="-28" x2="268" y2="-16"/>
+          <line x1="364" y1="-28" x2="364" y2="-16"/>
+          <line x1="0" y1="-52" x2="364" y2="-52"/>
+          <line x1="0" y1="-58" x2="0" y2="-46"/><line x1="364" y1="-58" x2="364" y2="-46"/>
+        </g>
+        <text x="25" y="-28" font-size="10" text-anchor="middle">zina 0.50</text>
+        <text x="155" y="-28" font-size="10" text-anchor="middle">2.10</text>
+        <text x="264" y="-32" font-size="8" text-anchor="middle" class="m">0.08</text>
+        <text x="316" y="-28" font-size="10" text-anchor="middle">0.96</text>
+        <text x="182" y="-58" font-size="11" text-anchor="middle" font-weight="500">3.64</text>
+        <!-- o'lcham: chap -->
+        <g stroke="var(--muted)" stroke-width="1">
+          <line x1="-30" y1="0" x2="-30" y2="288"/>
+          <line x1="-36" y1="0" x2="-24" y2="0"/><line x1="-36" y1="288" x2="-24" y2="288"/>
+          <line x1="-36" y1="175" x2="-24" y2="175"/>
+          <line x1="-60" y1="0" x2="-60" y2="288"/>
+          <line x1="-66" y1="0" x2="-54" y2="0"/><line x1="-66" y1="288" x2="-54" y2="288"/>
+        </g>
+        <text x="-36" y="88" font-size="10" text-anchor="middle" transform="rotate(-90 -36 88)">1.75</text>
+        <text x="-36" y="232" font-size="10" text-anchor="middle" transform="rotate(-90 -36 232)">1.13</text>
+        <text x="-66" y="144" font-size="11" text-anchor="middle" font-weight="500" transform="rotate(-90 -66 144)">2.88</text>
+        <!-- o'lcham: o'ng -->
+        <g stroke="var(--muted)" stroke-width="1">
+          <line x1="392" y1="0" x2="392" y2="288"/>
+          <line x1="386" y1="0" x2="398" y2="0"/><line x1="386" y1="184" x2="398" y2="184"/><line x1="386" y1="288" x2="398" y2="288"/>
+        </g>
+        <text x="404" y="92" font-size="10" text-anchor="middle" transform="rotate(90 404 92)">gardirob 1.84</text>
+        <text x="404" y="236" font-size="10" text-anchor="middle" transform="rotate(90 404 236)">eshik zonasi 1.04</text>
+        <!-- o'lcham: past -->
+        <g stroke="var(--muted)" stroke-width="1">
+          <line x1="0" y1="328" x2="364" y2="328"/>
+          <line x1="0" y1="322" x2="0" y2="334"/><line x1="260" y1="322" x2="260" y2="334"/>
+          <line x1="345" y1="322" x2="345" y2="334"/><line x1="364" y1="322" x2="364" y2="334"/>
+        </g>
+        <text x="130" y="346" font-size="10" text-anchor="middle">devor 2.60</text>
+        <text x="302" y="346" font-size="10" text-anchor="middle">0.85</text>
+        <text x="356" y="346" font-size="9" text-anchor="middle" class="m">0.19</text>
+      </svg>
+      </div>
+    </section>
+
+    <div class="stack">
+      <section class="card">
+        <h2>Kesim, chap devor tomondan</h2>
+        <div class="plan-scroll">
+        <svg viewBox="-74 -16 452 336" role="img" aria-label="Balandliklar kesimi: karavot, antresol, zina">
+          <!-- devorlar, pol, shift (1 m = 100) -->
+          <rect x="0" y="0" width="288" height="280" fill="var(--surface)"/>
+          <!-- karavot: podium 0–0.12, matras 0.12–0.30 -->
+          <rect x="0" y="268" width="175" height="12" fill="var(--plan-wood)"/>
+          <rect x="0" y="250" width="175" height="18" fill="var(--plan-bed)" stroke="var(--fg)" stroke-width="1"/>
+          <!-- antresol: 1.25–1.37 -->
+          <rect x="0" y="143" width="178" height="12" fill="var(--plan-wood)" stroke="var(--fg)" stroke-width="1"/>
+          <rect x="175" y="155" width="3" height="125" fill="var(--fg)"/>
+          <!-- panjara 0.70 -->
+          <rect x="175" y="73" width="3" height="70" fill="var(--fg)"/>
+          <rect x="150" y="73" width="28" height="3" fill="var(--fg)"/>
+          <g stroke="var(--muted)" stroke-width="1"><line x1="160" y1="76" x2="160" y2="143"/><line x1="168" y1="76" x2="168" y2="143"/></g>
+          <!-- zina (oldinda): 5 pog'ona + maydoncha -->
+          <g fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 2">
+            <path d="M175 280 V257.2 H146 V234.3 H117 V211.5 H88 V188.7 H59 V165.8 H30 V143 H0"/>
+          </g>
+          <!-- antresoldagi divan va stol -->
+          <rect x="65" y="128" width="105" height="15" rx="4" fill="var(--plan-soft)"/>
+          <text x="70" y="104" font-size="10" text-anchor="middle">dam olish · dars</text>
+          <text x="70" y="118" font-size="8.5" text-anchor="middle" class="m">faqat o'tiriladi</text>
+          <text x="104" y="244" font-size="10" text-anchor="middle">karavot</text>
+          <text x="46" y="200" font-size="9" text-anchor="middle" style="fill:var(--accent)">zina</text>
+          <text x="233" y="200" font-size="10" text-anchor="middle" class="m">xona</text>
+          <!-- chegara -->
+          <path d="M0 0 V280 M288 0 V280" stroke="var(--fg)" stroke-width="5"/>
+          <path d="M-3 0 H291 M-3 280 H291" stroke="var(--fg)" stroke-width="3"/>
+          <!-- o'lchamlar: o'ng -->
+          <g stroke="var(--muted)" stroke-width="1">
+            <line x1="312" y1="0" x2="312" y2="280"/>
+            <line x1="306" y1="0" x2="318" y2="0"/><line x1="306" y1="143" x2="318" y2="143"/>
+            <line x1="306" y1="155" x2="318" y2="155"/><line x1="306" y1="250" x2="318" y2="250"/>
+            <line x1="306" y1="280" x2="318" y2="280"/>
+          </g>
+          <g font-size="10">
+            <text x="324" y="75">1.43</text>
+            <text x="324" y="153" class="m" font-size="8.5">0.12</text>
+            <text x="324" y="206">0.95</text>
+            <text x="324" y="269">0.30</text>
+          </g>
+          <!-- o'lchamlar: chap -->
+          <g stroke="var(--muted)" stroke-width="1">
+            <line x1="-26" y1="0" x2="-26" y2="280"/>
+            <line x1="-32" y1="0" x2="-20" y2="0"/><line x1="-32" y1="280" x2="-20" y2="280"/>
+          </g>
+          <text x="-34" y="140" font-size="11" font-weight="500" text-anchor="middle" transform="rotate(-90 -34 140)">shift 2.80</text>
+          <!-- o'lchamlar: past -->
+          <g stroke="var(--muted)" stroke-width="1">
+            <line x1="0" y1="300" x2="288" y2="300"/>
+            <line x1="0" y1="294" x2="0" y2="306"/><line x1="178" y1="294" x2="178" y2="306"/><line x1="288" y1="294" x2="288" y2="306"/>
+          </g>
+          <text x="89" y="317" font-size="10" text-anchor="middle">antresol 1.78</text>
+          <text x="233" y="317" font-size="10" text-anchor="middle">1.10</text>
+        </svg>
+        </div>
+      </section>
+      <section class="card">
+        <h2>Balandliklar</h2>
+        <table>
+          <tr><td>Karavot: podium 0.12 + matras 0.18</td><td>0.30</td></tr>
+          <tr><td>Karavotda o'tirganda boshdan yuqori joy</td><td>0.95</td></tr>
+          <tr><td>Antresol tagi</td><td>1.25</td></tr>
+          <tr><td>Antresol poli (qalinligi 0.12)</td><td>1.37</td></tr>
+          <tr><td>Antresoldan shiftgacha, faqat o'tiriladi</td><td>1.43</td></tr>
+          <tr><td>Zina: 6 pog'ona, eni 0.47, qadam 0.29</td><td>0.23 dan</td></tr>
+          <tr><td>Panjara, antresol polidan</td><td>0.70</td></tr>
+          <tr><td>Televizor, ~40 dyuym (gardirob devorida)</td><td>1.65–2.21</td></tr>
+        </table>
+      </section>
+      <section class="card">
+        <h2>Ranglar va materiallar</h2>
+        <div class="sw">
+          <div><i style="background:#ECE6DC"></i>Devor — sut rang</div>
+          <div><i style="background:#F7F5F1"></i>Shift, friz — oq</div>
+          <div><i style="background:#6B4429"></i>Pol — yong'oq, yolka</div>
+          <div><i style="background:#E8E2D8"></i>Karavot, javon — oq-krem</div>
+          <div><i style="background:#C3CCD3"></i>Spinka, divan — kulrang-havorang</div>
+          <div><i style="background:#C49A6C"></i>Antresol poli, zina — dub</div>
+        </div>
+      </section>
+      <section class="card">
+        <h2>E'tibor bering</h2>
+        <ul class="todo">
+          <li><b>Zinada bosh</b> — 5-pog'onada turganda shiftgacha 1.66 m, egilib chiqiladi.</li>
+          <li><b>Karavotga yotish</b> — antresol tagi 1.25 m, karavotga egilib kiriladi.</li>
+          <li><b>Mustahkamlik</b> — antresolning old burchagida ingichka metall ustun bor; ichida metall balka kerak, usta bilan hisoblanadi.</li>
+          <li><b>Gardirob tepasidagi quti</b> — eshiklari endi antresolga qaraydi, o'tirgan joydan ochiladi.</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+  var stage = document.getElementById('stage');
+  if (!window.THREE || !THREE.OrbitControls) {
+    stage.innerHTML = '<div class="err">3D kutubxonasi yuklanmadi. Sahifani yangilab ko\'ring.</div>';
+    return;
+  }
+  var W = 3.64, D = 2.88, H = 2.80;
+  var reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- renderer / scene ----------
+  var renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  stage.appendChild(renderer.domElement);
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(55, 1, 0.03, 60);
+  var controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.minDistance = 0.25; controls.maxDistance = 12;
+
+  function setStageBg(){
+    var c = getComputedStyle(document.documentElement).getPropertyValue('--stage').trim() || '#E6E2DB';
+    scene.background = new THREE.Color(c).convertSRGBToLinear();
+  }
+  setStageBg();
+  if (window.matchMedia) {
+    var mq = matchMedia('(prefers-color-scheme: dark)');
+    if (mq.addEventListener) mq.addEventListener('change', setStageBg);
+  }
+  new MutationObserver(setStageBg).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+
+  // ---------- helpers ----------
+  function col(hex){ return new THREE.Color(hex).convertSRGBToLinear(); }
+  function mat(hex, o){
+    var p = {color: col(hex), roughness: 0.85, metalness: 0};
+    if (o) for (var k in o) p[k] = o[k];
+    return new THREE.MeshStandardMaterial(p);
+  }
+  function bx(x0,x1,y0,y1,z0,z1,m,parent,noShadow){
+    var me = new THREE.Mesh(new THREE.BoxGeometry(x1-x0, y1-y0, z1-z0), m);
+    me.position.set((x0+x1)/2, (y0+y1)/2, (z0+z1)/2);
+    if (!noShadow){ me.castShadow = true; me.receiveShadow = true; }
+    (parent || scene).add(me);
+    return me;
+  }
+  function rng(seed){ return function(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function canvasTex(w,h,draw){
+    var c = document.createElement('canvas'); c.width = w; c.height = h;
+    draw(c.getContext('2d'), w, h);
+    var t = new THREE.CanvasTexture(c);
+    t.encoding = THREE.sRGBEncoding;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    return t;
+  }
+
+  // ---------- textures ----------
+  var parquetTex = canvasTex(1024, 1024, function(g, w, h){
+    var cols = 8, cw = w/cols, rows = 24, ph = h/rows, r = rng(7);
+    var tones = [];
+    for (var i=0;i<cols*rows;i++) tones.push(26 + r()*12);
+    g.fillStyle = '#3d2716'; g.fillRect(0,0,w,h);
+    for (var c=0;c<cols;c++){
+      var x0 = c*cw, x1 = x0+cw, s = (c%2===0) ? 1 : -1;
+      for (var k=-4; k<rows+4; k++){
+        var y = k*ph, idx = c*rows + (((k%rows)+rows)%rows);
+        var pts = s>0 ? [[x0,y],[x1,y+cw],[x1,y+cw+ph],[x0,y+ph]] : [[x0,y+cw],[x1,y],[x1,y+ph],[x0,y+cw+ph]];
+        g.save(); g.beginPath(); g.moveTo(pts[0][0],pts[0][1]);
+        for (var p=1;p<4;p++) g.lineTo(pts[p][0],pts[p][1]);
+        g.closePath();
+        var L = tones[idx];
+        g.fillStyle = 'hsl(27,40%,' + L.toFixed(1) + '%)'; g.fill();
+        g.clip();
+        var rr = rng(idx*31+5);
+        for (var n=0;n<9;n++){
+          var off = rr()*ph;
+          g.strokeStyle = 'rgba(' + (rr()<0.5 ? '255,235,210,' : '30,15,5,') + (0.05+rr()*0.08) + ')';
+          g.lineWidth = 0.6 + rr()*1.4;
+          g.beginPath();
+          if (s>0){ g.moveTo(x0, y+off); g.lineTo(x1, y+off+cw); }
+          else { g.moveTo(x0, y+off+cw); g.lineTo(x1, y+off); }
+          g.stroke();
+        }
+        g.restore();
+        g.strokeStyle = 'rgba(20,10,4,.55)'; g.lineWidth = 1.4;
+        g.beginPath(); g.moveTo(pts[0][0],pts[0][1]); for (p=1;p<4;p++) g.lineTo(pts[p][0],pts[p][1]); g.closePath(); g.stroke();
+      }
+    }
+  });
+  var tile = 8 * (0.6/Math.SQRT2);           // texture 1 tile ≈ 3.39 m
+  parquetTex.repeat.set(W/tile, D/tile);
+
+  function flutedTex(){
+    return canvasTex(256, 32, function(g, w, h){
+      var n = 16, sw = w/n;
+      for (var i=0;i<n;i++){
+        var gr = g.createLinearGradient(i*sw,0,(i+1)*sw,0);
+        gr.addColorStop(0,'#cfc8bd'); gr.addColorStop(0.45,'#fbf8f2'); gr.addColorStop(1,'#bdb5a9');
+        g.fillStyle = gr; g.fillRect(i*sw,0,sw,h);
+      }
+    });
+  }
+  var channelTex = canvasTex(256, 16, function(g, w, h){
+    var n = 8, sw = w/n;
+    for (var i=0;i<n;i++){
+      var gr = g.createLinearGradient(i*sw,0,(i+1)*sw,0);
+      gr.addColorStop(0,'#9aa6ae'); gr.addColorStop(0.18,'#c8d1d7'); gr.addColorStop(0.5,'#d3dbe0'); gr.addColorStop(0.82,'#c8d1d7'); gr.addColorStop(1,'#98a3ab');
+      g.fillStyle = gr; g.fillRect(i*sw,0,sw,h);
+    }
+  });
+  var houndTex = canvasTex(64, 64, function(g, w, h){
+    g.fillStyle = '#f2efe9'; g.fillRect(0,0,w,h); g.fillStyle = '#24221f';
+    var s = 16;
+    for (var i=0;i<4;i++) for (var j=0;j<4;j++){
+      var x = i*s, y = j*s;
+      g.fillRect(x, y, s/2, s/2);
+      g.beginPath(); g.moveTo(x+s/2, y); g.lineTo(x+s*0.75, y); g.lineTo(x+s/2, y+s/4); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(x, y+s/2); g.lineTo(x+s/4, y+s/2); g.lineTo(x, y+s*0.75); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(x+s/2, y+s/2); g.lineTo(x+s/2, y+s*0.75); g.lineTo(x+s*0.25, y+s/2); g.closePath(); g.fill();
+    }
+  });
+  houndTex.repeat.set(3,3);
+
+  // ---------- materials ----------
+  var M = {
+    wall: mat('#ECE6DC', {roughness:0.95}),
+    ceil: mat('#F7F5F1', {roughness:0.95}),
+    trim: mat('#F5F3EF', {roughness:0.6}),
+    floor: new THREE.MeshStandardMaterial({map: parquetTex, roughness:0.55, metalness:0}),
+    bed: mat('#E8E2D8', {roughness:0.7}),
+    bedFront: mat('#EEE9E1', {roughness:0.6}),
+    dark: mat('#2b2622', {roughness:0.6}),
+    sheet: mat('#F6F4F0', {roughness:0.95}),
+    duvet: mat('#F1EDE6', {roughness:1}),
+    throwM: mat('#BFB2A1', {roughness:1}),
+    pillow: mat('#FAF8F5', {roughness:1}),
+    hound: new THREE.MeshStandardMaterial({map: houndTex, roughness:1}),
+    head: new THREE.MeshStandardMaterial({map: channelTex, roughness:0.95}),
+    oak: mat('#C49A6C', {roughness:0.55}),
+    shelf: mat('#E9E3D8', {roughness:0.7}),
+    closetWall: mat('#E4DBCD', {roughness:0.95}),
+    metal: mat('#CFCAC2', {roughness:0.3, metalness:0.7}),
+    rug: mat('#D8D0C3', {roughness:1}),
+    door: mat('#F3F1EC', {roughness:0.5}),
+    led: new THREE.MeshStandardMaterial({color: col('#ffe7c2'), emissive: col('#ffd9a0'), emissiveIntensity: 0.9, roughness:0.4}),
+    lamp: new THREE.MeshStandardMaterial({color: col('#fffaf0'), emissive: col('#fff1d6'), emissiveIntensity: 0.6, roughness:0.4})
+  };
+  var glassTex = flutedTex(); glassTex.repeat.set(3,1);
+  M.glass = new THREE.MeshStandardMaterial({map: glassTex, transparent:true, opacity:0.62, roughness:0.25, emissive: col('#4a3a26'), emissiveIntensity: 0.25, side: THREE.DoubleSide});
+
+  // ---------- room shell (walls hide when the camera is behind them) ----------
+  var wallDefs = [];
+  function wallGroup(n, p){ var grp = new THREE.Group(); scene.add(grp); wallDefs.push({grp:grp, n:new THREE.Vector3(n[0],n[1],n[2]), p:new THREE.Vector3(p[0],p[1],p[2])}); return grp; }
+  function plane(w,h,m,pos,rx,ry,parent){
+    var me = new THREE.Mesh(new THREE.PlaneGeometry(w,h), m);
+    me.position.set(pos[0],pos[1],pos[2]); me.rotation.set(rx||0, ry||0, 0);
+    me.receiveShadow = true; parent.add(me); return me;
+  }
+  var gFront = wallGroup([0,0,1],[0,0,0]);
+  var gDoor  = wallGroup([0,0,-1],[0,0,D]);
+  var gLeft  = wallGroup([1,0,0],[0,0,0]);
+  var gRight = wallGroup([-1,0,0],[W,0,0]);
+  var gCeil  = wallGroup([0,-1,0],[0,H,0]);
+
+  plane(W,H,M.wall,[W/2,H/2,0],0,0,gFront);
+  plane(2.60,H,M.wall,[1.30,H/2,D],0,Math.PI,gDoor);
+  plane(0.85,H-2.17,M.wall,[3.025,(2.17+H)/2,D],0,Math.PI,gDoor);
+  plane(0.19,H,M.wall,[3.545,H/2,D],0,Math.PI,gDoor);
+  plane(D,H,M.wall,[0,H/2,D/2],0,Math.PI/2,gLeft);
+  plane(D,H,M.wall,[W,H/2,D/2],0,-Math.PI/2,gRight);
+  plane(W,D,M.ceil,[W/2,H,D/2],Math.PI/2,0,gCeil);
+  var floor = new THREE.Mesh(new THREE.PlaneGeometry(W,D), M.floor);
+  floor.rotation.x = -Math.PI/2; floor.position.set(W/2,0,D/2); floor.receiveShadow = true; scene.add(floor);
+
+  // skirting, tyaga (5 cm) and slatted frieze per wall
+  var slatGeo = new THREE.BoxGeometry(0.014, 0.13, 0.012);
+  var dummy = new THREE.Object3D();
+  function frieze(parent, axis, a0, a1, fixed, inward){
+    var step = 0.034, n = Math.floor((a1-a0)/step);
+    var im = new THREE.InstancedMesh(slatGeo, M.trim, n);
+    for (var i=0;i<n;i++){
+      var a = a0 + step*(i+0.5);
+      if (axis==='x') dummy.position.set(a, 2.675, fixed + inward*0.008);
+      else { dummy.position.set(fixed + inward*0.008, 2.675, a); }
+      dummy.rotation.set(0, axis==='x' ? 0 : Math.PI/2, 0);
+      dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix);
+    }
+    im.castShadow = true; parent.add(im);
+  }
+  // front wall (z=0)
+  bx(0,W,0,0.08,0,0.012,M.trim,gFront); bx(0,W,2.75,2.80,0,0.05,M.trim,gFront); frieze(gFront,'x',0,W,0,1);
+  // door wall (z=D)
+  bx(0,2.54,0,0.08,D-0.012,D,M.trim,gDoor); bx(3.51,W,0,0.08,D-0.012,D,M.trim,gDoor);
+  bx(0,W,2.75,2.80,D-0.05,D,M.trim,gDoor); frieze(gDoor,'x',0,W,D,-1);
+  bx(2.54,2.60,0,2.24,D-0.018,D,M.trim,gDoor); bx(3.45,3.51,0,2.24,D-0.018,D,M.trim,gDoor); bx(2.54,3.51,2.17,2.24,D-0.018,D,M.trim,gDoor);
+  // left wall (x=0)
+  bx(0,0.012,0,0.08,0,D,M.trim,gLeft); bx(0,0.05,2.75,2.80,0,D,M.trim,gLeft); frieze(gLeft,'z',0,D,0,1);
+  // right wall (x=W)
+  bx(W-0.012,W,0,0.08,1.84,D,M.trim,gRight); bx(W-0.05,W,2.75,2.80,0,D,M.trim,gRight); frieze(gRight,'z',0,D,W,-1);
+
+  // ---------- closet partitions ----------
+  function stadium(path, cx, cy, w, h){
+    var r = w/2;
+    path.moveTo(cx-r, cy-h/2+r);
+    path.lineTo(cx-r, cy+h/2-r);
+    path.absarc(cx, cy+h/2-r, r, Math.PI, 0, true);
+    path.lineTo(cx+r, cy-h/2+r);
+    path.absarc(cx, cy-h/2+r, r, 0, Math.PI, true);
+    return path;
+  }
+  // partition behind the bed head (x 2.60–2.68, z 0–1.84) with an oval glass window
+  var pShape = new THREE.Shape();
+  // devor 2.28 gacha; undan yuqorisi — karavot tomondan ochiladigan quti eshiklari
+  pShape.moveTo(0,0); pShape.lineTo(1.84,0); pShape.lineTo(1.84,2.28); pShape.lineTo(0,2.28); pShape.lineTo(0,0);
+  var winC = {u:0.875, v:1.88, w:0.46, h:0.86};
+  // oval oyna olib tashlandi (Islom) — devor yaxlit
+  var pA = new THREE.Mesh(new THREE.ExtrudeGeometry(pShape, {depth:0.08, bevelEnabled:false}), M.wall);
+  pA.rotation.y = -Math.PI/2; pA.position.set(2.68, 0, 0);
+  pA.castShadow = true; pA.receiveShadow = true; scene.add(pA);
+  // oak frame of the oval window, both faces
+  function ovalRing(xFace, dir){
+    var s = stadium(new THREE.Shape(), winC.u, winC.v, winC.w+0.08, winC.h+0.08);
+    s.holes.push(stadium(new THREE.Path(), winC.u, winC.v, winC.w, winC.h));
+    var m = new THREE.Mesh(new THREE.ExtrudeGeometry(s, {depth:0.022, bevelEnabled:false}), M.oak);
+    m.rotation.y = -Math.PI/2; m.position.set(xFace + (dir<0 ? 0 : 0.022), 0, 0);
+    m.castShadow = true; scene.add(m);
+  }
+
+  // front partition of the closet (x 2.60–3.64, z 1.76–1.84) with an arched opening
+  var fShape = new THREE.Shape();
+  fShape.moveTo(0,0); fShape.lineTo(0.12,0); fShape.lineTo(0.12,1.80);
+  fShape.absarc(0.42,1.80,0.30,Math.PI,0,true);
+  fShape.lineTo(0.72,0); fShape.lineTo(1.04,0); fShape.lineTo(1.04,H); fShape.lineTo(0,H); fShape.lineTo(0,0);
+  var pF = new THREE.Mesh(new THREE.ExtrudeGeometry(fShape, {depth:0.08, bevelEnabled:false}), M.wall);
+  pF.position.set(2.60, 0, 1.76); pF.castShadow = true; pF.receiveShadow = true; scene.add(pF);
+  var arch = new THREE.Shape();
+  arch.moveTo(0.09,0); arch.lineTo(0.09,1.80); arch.absarc(0.42,1.80,0.33,Math.PI,0,true); arch.lineTo(0.75,0);
+  arch.lineTo(0.72,0); arch.lineTo(0.72,1.80); arch.absarc(0.42,1.80,0.30,0,Math.PI,false); arch.lineTo(0.12,0); arch.lineTo(0.09,0);
+  var archM = new THREE.Mesh(new THREE.ExtrudeGeometry(arch, {depth:0.10, bevelEnabled:false, curveSegments:24}), M.oak);
+  archM.position.set(2.60, 0, 1.75); archM.castShadow = true; scene.add(archM);
+  // skirting & cornice on partitions (room side)
+  bx(2.60-0.012,2.60,0,0.08,0,1.84,M.trim); bx(2.60,2.72,0,0.08,1.84,1.852,M.trim); bx(3.32,W,0,0.08,1.84,1.852,M.trim);
+
+  // ---------- closet interior ----------
+  var C = {x0:2.68, x1:W};
+  // Ilgichlar (Islom: ko'p bo'lsin, odam bo'yidan baland ham):
+  //   orqa devor — 3 qavat: 2.62 (pantograf-lift), 1.74, 0.92
+  //   o'ng devor — tepada 1 qavat 2.62 (lift), pastki qismi yurish uchun bo'sh
+  var clothCols = ['#E7E1D6','#CFC6B8','#8E8579','#3C3A37','#B7AE9C','#DDD5C8','#6E7461','#F0ECE4','#A99A86','#2F3135'];
+  var rC = rng(11);
+  function rodX(y, zc){ var m = new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,C.x1-C.x0,12), M.metal); m.rotation.z = Math.PI/2; m.position.set((C.x0+C.x1)/2, y, zc || 0.30); scene.add(m); }
+  function rodZ(y, x, z0, z1){ var m = new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,z1-z0,12), M.metal); m.rotation.x = Math.PI/2; m.position.set(x, y, (z0+z1)/2); scene.add(m); }
+  function hangX(yTop, minL, maxL, count, zc){
+    zc = zc || 0.30;
+    var a0 = C.x0+0.05, step = ((C.x1-0.05) - a0)/count;
+    for (var i=0;i<count;i++){
+      if (rC() < 0.1) continue;
+      var x = a0 + step*(i+0.5), L = minL + rC()*(maxL-minL);
+      bx(x-0.015, x+0.015, yTop-L, yTop-0.06, zc-0.23, zc+0.23, mat(clothCols[Math.floor(rC()*clothCols.length)], {roughness:1}));
+      bx(x-0.004, x+0.004, yTop-0.07, yTop, zc-0.01, zc+0.01, M.metal, null, true);
+    }
+  }
+  function hangZ(yTop, minL, maxL, z0, z1, count){
+    var step = (z1 - z0)/count;
+    for (var i=0;i<count;i++){
+      if (rC() < 0.1) continue;
+      var z = z0 + step*(i+0.5), L = minL + rC()*(maxL-minL);
+      bx(W-0.53, W-0.07, yTop-L, yTop-0.06, z-0.015, z+0.015, mat(clothCols[Math.floor(rC()*clothCols.length)], {roughness:1}));
+      bx(W-0.31, W-0.29, yTop-0.07, yTop, z-0.004, z+0.004, M.metal, null, true);
+    }
+  }
+  function liftX(){   // pantograf: yon kronshteynlar + pastga tortiladigan dasta
+    bx(C.x0+0.01,C.x0+0.03,2.50,2.78,0.04,0.12,M.metal); bx(C.x1-0.03,C.x1-0.01,2.50,2.78,0.04,0.12,M.metal);
+    bx((C.x0+C.x1)/2-0.006,(C.x0+C.x1)/2+0.006,1.86,2.62,0.40,0.412,M.metal);
+    bx((C.x0+C.x1)/2-0.08,(C.x0+C.x1)/2+0.08,1.85,1.866,0.40,0.42,M.dark);
+  }
+  function liftZ(){
+    bx(W-0.12,W-0.04,2.50,2.78,0.60,0.62,M.metal); bx(W-0.12,W-0.04,2.50,2.78,1.70,1.72,M.metal);
+    bx(W-0.56,W-0.548,1.88,2.62,1.16,1.172,M.metal);
+    bx(W-0.57,W-0.55,1.87,1.886,1.08,1.24,M.dark);
+  }
+  // yog'och tumba — O'NG devor tagida (Islom): uzunligi 1.16, chuqurligi 0.45, balandligi 0.45, 2 ta tortma
+  var oakDrawer = mat('#B98E62', {roughness:0.5});
+  // tumba olib tashlandi (Islom)
+  // orqa devor — 2 qator ilgich, tepa eng yuqorida EMAS (Islom): 2.15 va 1.10
+  rodX(2.15); rodX(1.10);
+  hangX(2.15, 0.66, 0.86, 19);
+  hangX(1.10, 0.62, 0.84, 19);
+  // 2-qator — eshik tomonga qarab, tepa va past (Islom): shtangalar z = 0.85
+  rodX(2.15, 0.85); rodX(1.10, 0.85);
+  hangX(2.15, 0.66, 0.86, 19, 0.85);
+  hangX(1.10, 0.62, 0.84, 19, 0.85);
+  // PASTKI QUTI (Islom): orqa devordan eshik tomonga, 0.96 × 1.10, balandligi 0.40,
+  // 2 ta tortma — eshik tomonga ochiladi
+  bx(C.x0,C.x1,0,0.22,0,1.10,M.oak);                                // past quti — 1 qavat (Islom)
+  bx(C.x0+0.015,C.x1-0.015,0.03,0.205,1.10,1.112,oakDrawer);
+  bx((C.x0+C.x1)/2-0.12,(C.x0+C.x1)/2+0.12,0.175,0.183,1.112,1.118,M.dark,null,true);
+  // tepada 2 ta quti, bir-biriga tegmaydi (Islom):
+  //   to'g'rida (orqa devor): 0.96 × 0.55, y 2.30–2.78
+  //   chapda (karavot ortidagi devor): 1.16 × 0.35, y 2.36–2.78 — oval oyna ustidan o'tadi
+  function boxDoor(x0,x1,y0,y1,z0,z1,face){
+    bx(x0,x1,y0,y1,z0,z1,M.oak);
+    if (face==='z'){ bx(x0+0.015,x1-0.015,y0+0.015,y1-0.015,z1,z1+0.012,oakDrawer);
+      bx((x0+x1)/2-0.1,(x0+x1)/2+0.1,y0+0.035,y0+0.043,z1+0.012,z1+0.018,M.dark,null,true); }
+    else { bx(x1,x1+0.012,y0+0.015,y1-0.015,z0+0.015,z1-0.015,oakDrawer);
+      bx(x1+0.012,x1+0.018,y0+0.035,y0+0.043,(z0+z1)/2-0.1,(z0+z1)/2+0.1,M.dark,null,true); }
+  }
+  // TUZATISH (Islom): ikkinchi quti chapda emas — O'NG devorda
+  // TO'LIQ QUTI gardirob ustida (Islom, A varianti): 0.96 × 1.76, 2.30 dan shiftgacha,
+  // eshiklari KARAVOT tomondan (karavot boshi ustida), 3 ta, tutqichsiz (bosib ochiladi)
+  bx(2.60,W,2.28,2.30,0,1.76,M.shelf);                               // quti tagi = gardirob shifti
+  // eshiklar devordan ajralib tursin (Islom): dub rangi, orasida qora tirqish, ostida oq chiziq
+  bx(2.60,2.605,2.28,2.75,0,1.84,M.dark,null,true);
+  [[0.0,0.61],[0.615,1.225],[1.23,1.84]].forEach(function(s){
+    bx(2.582,2.60,2.29,2.745,s[0]+0.006,s[1]-0.006,oakDrawer);
+    bx(2.576,2.582,2.30,2.306,(s[0]+s[1])/2-0.10,(s[0]+s[1])/2+0.10,M.dark,null,true);
+  });
+  bx(2.578,2.60,2.275,2.29,0,1.84,M.trim);
+  bx(C.x0,C.x1,2.272,2.279,0.52,0.55,M.led,null,true);               // LED quti ostida
+  bx(C.x0,C.x1,2.272,2.279,1.30,1.33,M.led,null,true);
+  // o'ngdagi ilgichlar olib tashlandi (Islom)
+  // o'ng devordagi javon olib tashlandi (Islom, 2026-11-20) — faqat plintus
+  bx(W-0.012,W,0,0.08,0.56,1.76,M.trim);
+  var closetLight = new THREE.PointLight(col('#ffe2b8'), 0.4, 3.2);
+  closetLight.position.set(3.10, 2.45, 0.95); scene.add(closetLight);
+
+  // ---------- bed (2.10 × 1.75, side against the front wall, head at the closet) ----------
+  // 2-VARIANT: past podium karavot — matras usti 0.30
+  var BX0 = 0.50, BX1 = 2.60, BZ1 = 1.75;
+  bx(BX0+0.04,BX1-0.04,0,0.03,0.04,BZ1-0.04,M.dark);              // podium ostidagi soya chizig'i
+  bx(BX0,BX1-0.04,0.03,0.12,0,BZ1,M.oak);                         // podium (dub)
+  bx(BX0+0.03,BX1-0.05,0.12,0.30,0.01,BZ1-0.02,M.sheet);           // matras
+  bx(BX0+0.02,2.12,0.30,0.35,0.005,BZ1+0.015,M.duvet);             // ko'rpa usti
+  bx(BX0+0.02,2.12,0.14,0.35,BZ1+0.005,BZ1+0.022,M.duvet);         // ko'rpa old tomoni
+  bx(BX0,BX0+0.02,0.14,0.35,0.005,BZ1+0.022,M.duvet);              // ko'rpa oyoq tomoni
+  bx(BX0+0.06,0.98,0.35,0.37,0.005,BZ1+0.03,M.throwM);             // pled
+  bx(BX0+0.06,0.98,0.16,0.37,BZ1+0.022,BZ1+0.035,M.throwM);
+  bx(2.56,2.60,0.30,1.20,0,BZ1,M.head);                            // yumshoq spinka (gardirob devorida)
+  bx(2.555,2.60,1.20,1.215,0,BZ1,M.trim);
+  function ellip(sx,sy,sz,m,x,y,z,rz){ var e = new THREE.Mesh(new THREE.SphereGeometry(1,28,18), m); e.scale.set(sx,sy,sz); e.position.set(x,y,z); e.rotation.z = rz||0; e.castShadow = true; e.receiveShadow = true; scene.add(e); return e; }
+  ellip(0.08,0.24,0.34,M.pillow,2.45,0.515,0.46,-0.28);
+  ellip(0.08,0.24,0.34,M.pillow,2.45,0.515,1.26,-0.28);
+  ellip(0.07,0.19,0.22,M.hound,2.31,0.465,0.58,-0.22);
+  ellip(0.07,0.19,0.22,M.hound,2.31,0.465,1.14,-0.22);
+  ellip(0.06,0.13,0.13,M.pillow,2.22,0.435,0.86,-0.15);
+
+  // rug in the free zone
+  bx(0.70,2.20,0,0.012,1.86,2.36,M.rug,null,true).receiveShadow = true;
+
+  // ---------- ANTRESOL (karavot ustida): tagi 1.25, poli 1.37 ----------
+  var LX0 = 0.47, LX1 = 2.60, LZ1 = 1.78, LY0 = 1.25, LY1 = 1.37;
+  bx(LX0,LX1,LY0,LY1-0.015,0,LZ1,M.trim);                          // plita (tagi oq)
+  bx(LX0,LX1,LY1-0.015,LY1,0,LZ1,M.oak);                           // poli dub
+  bx(LX0,LX1,LY0,LY1,LZ1-0.004,LZ1+0.008,M.oak);                   // old qirra
+  bx(LX0,0.50,0,LY0,1.75,1.78,M.metal);                            // old burchakdagi metall ustun
+  // antresol ostida LED va yorug'lik (karavot uchun)
+  bx(0.56,2.52,LY0-0.007,LY0,1.64,1.68,M.led,null,true);
+  var bedLight = new THREE.PointLight(col('#ffd9a8'), 0.2, 2.6); bedLight.position.set(1.55,1.10,0.85); scene.add(bedLight);
+  // panjara 0.70: old tomonda (z = 1.78) va zina tomonda (x = 0.47, z 0.88 dan)
+  var RY1 = LY1 + 0.70;
+  bx(LX0,LX1,RY1-0.03,RY1,LZ1-0.04,LZ1,M.oak);
+  for (var rx = LX0+0.06; rx < LX1-0.02; rx += 0.10) bx(rx-0.012,rx+0.012,LY1,RY1-0.03,LZ1-0.03,LZ1-0.01,M.trim);
+  bx(LX0-0.015,LX0+0.025,RY1-0.03,RY1,0.88,LZ1,M.oak);
+  for (var rz = 0.92; rz < LZ1-0.03; rz += 0.10) bx(LX0-0.005,LX0+0.015,LY1,RY1-0.03,rz-0.012,rz+0.012,M.trim);
+  bx(LX0-0.015,LX0+0.025,LY1,RY1,0.86,0.90,M.oak);                 // kirish ustunchasi
+
+  // ---------- ZINA: x 0–0.47, 5 pog'ona + 6-pog'ona (maydoncha), har birida tortma ----------
+  var STEP = LY1/6;
+  for (var k=1; k<=6; k++){
+    var sz0 = k<6 ? 1.75 - k*0.29 : 0, sz1 = 1.75 - (k-1)*0.29, sh = k*STEP;
+    bx(0,0.47,0,sh-0.025,sz0,sz1,M.bedFront);                       // pog'ona qutisi
+    bx(0,0.47,sh-0.025,sh,sz0,sz1+0.012,M.oak);                       // dub tepasi
+    bx(0.03,0.44,(k-1)*STEP+0.02,sh-0.04,sz1,sz1+0.012,oakDrawer);    // tortma (old yuzada)
+    bx(0.175,0.295,sh-0.07,sh-0.062,sz1+0.012,sz1+0.018,M.dark,null,true);
+  }
+  // devordagi tutqich
+  (function(){
+    var a = new THREE.Vector3(0.045, STEP+0.90, 1.70), b = new THREE.Vector3(0.045, 5*STEP+0.90, 0.36);
+    var dir = new THREE.Vector3().subVectors(b, a), len = dir.length();
+    var rail = new THREE.Mesh(new THREE.CylinderGeometry(0.016,0.016,len,12), M.oak);
+    rail.position.copy(a).add(b).multiplyScalar(0.5);
+    rail.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.normalize());
+    rail.castShadow = true; gLeft.add(rail);
+    [a,b].forEach(function(p){ bx(0.012,0.045,p.y-0.012,p.y+0.012,p.z-0.012,p.z+0.012,M.metal,gLeft,true); });
+  })();
+
+  // ---------- antresol jihozlari ----------
+  var sofaM = mat('#C3CCD3', {roughness:0.95});
+  bx(0.52,2.50,LY1,LY1+0.008,0.05,1.70,M.rug,null,true).receiveShadow = true;   // gilam
+  bx(0.52,1.15,LY1+0.008,LY1+0.16,0.65,1.70,sofaM);                // yerda o'tiriladigan divan
+  bx(0.52,0.68,LY1+0.16,LY1+0.52,0.92,1.68,sofaM);                 // suyanchiq (panjaraga)
+  bx(0.68,1.15,LY1+0.16,LY1+0.30,0.65,0.80,sofaM);                 // yon yostiq
+  ellip(0.07,0.17,0.20,M.hound,0.78,LY1+0.31,1.05,-0.25);
+  ellip(0.07,0.17,0.20,M.pillow,0.78,LY1+0.31,1.45,-0.25);
+  // past stol 0.35 (dars uchun)
+  bx(1.35,1.95,LY1+0.32,LY1+0.35,0.50,1.20,M.oak);
+  [[1.39,0.54],[1.91,0.54],[1.39,1.16],[1.91,1.16]].forEach(function(p){ bx(p[0]-0.02,p[0]+0.02,LY1+0.008,LY1+0.32,p[1]-0.02,p[1]+0.02,M.oak); });
+  var aluL = mat('#D6D7DA', {roughness:0.35, metalness:0.6});
+  bx(1.48,1.80,LY1+0.35,LY1+0.362,0.60,0.82,aluL);                  // noutbuk
+  var lScr = new THREE.Mesh(new THREE.BoxGeometry(0.32,0.21,0.008), aluL);
+  lScr.rotation.x = -0.25; lScr.position.set(1.64, LY1+0.362+0.105*Math.cos(0.25), 0.60-0.105*Math.sin(0.25));
+  lScr.castShadow = true; scene.add(lScr);
+  bx(1.55,1.80,LY1+0.35,LY1+0.39,0.92,1.12,mat('#E9E4DA',{roughness:0.8}));   // kitoblar
+  bx(1.57,1.78,LY1+0.39,LY1+0.42,0.94,1.10,mat('#A89A86',{roughness:0.8}));
+  var puf = new THREE.Mesh(new THREE.CylinderGeometry(0.20,0.20,0.32,28), sofaM);
+  puf.position.set(1.65, LY1+0.008+0.16, 1.46); puf.castShadow = true; puf.receiveShadow = true; scene.add(puf);
+  // televizor — gardirob devorida, quti eshiklari ostida
+  var tvM = mat('#121315', {roughness:0.25, metalness:0.3});
+  bx(2.555,2.595,1.65,2.21,0.44,1.33,tvM);
+  var tvScreen = new THREE.MeshStandardMaterial({color: col('#0b0c0e'), emissive: col('#3d4a5a'), emissiveIntensity: 0.0, roughness:0.15});
+  bx(2.551,2.555,1.665,2.195,0.455,1.315,tvScreen,null,true);
+  // antresol yorug'ligi: old devor bo'ylab LED
+  bx(0.50,2.58,2.58,2.592,0.004,0.022,M.led,gFront,true);
+  var loftLight = new THREE.PointLight(col('#ffe2b8'), 0.25, 3.0); loftLight.position.set(1.5,2.45,0.9); scene.add(loftLight);
+
+  // ceiling light — xonaning ochiq qismida
+  var cl = new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,0.04,40), M.lamp); cl.position.set(1.45,H-0.02,2.32); scene.add(cl);
+  var ceilLight = new THREE.PointLight(col('#fff3e2'), 0.6, 0, 1);
+  ceilLight.position.set(1.45,2.45,2.32); ceilLight.castShadow = true;
+  ceilLight.shadow.mapSize.set(1024,1024); ceilLight.shadow.bias = -0.003; ceilLight.shadow.radius = 4;
+  scene.add(ceilLight);
+  var hemi = new THREE.HemisphereLight(col('#fff6ea'), col('#7a5a3c'), 0.55); scene.add(hemi);
+  var amb = new THREE.AmbientLight(col('#ffffff'), 0.16); scene.add(amb);
+
+  // ---------- DARS STOLI (videodagidek) — eshik devori bo'ylab, x 0–2.20 ----------
+  var SHOW_DESK = false;   // Islom: hozircha olib tashlandi — qaytarish uchun true qiling
+  var deskLight = null;
+  if (SHOW_DESK) {
+  var DX1 = 2.20, DZ = D;
+  var pegTex = canvasTex(256, 128, function(g, w, h){
+    g.fillStyle = '#C9A57E'; g.fillRect(0,0,w,h);
+    var r = rng(5);
+    for (var i=0;i<40;i++){ g.strokeStyle = 'rgba(120,80,40,' + (0.05+r()*0.08) + ')'; g.lineWidth = 1; g.beginPath(); var yy = r()*h; g.moveTo(0,yy); g.lineTo(w,yy+r()*6-3); g.stroke(); }
+    g.fillStyle = 'rgba(60,40,22,.75)';
+    for (var x=8;x<w;x+=16) for (var y2=8;y2<h;y2+=16){ g.beginPath(); g.arc(x,y2,2.6,0,Math.PI*2); g.fill(); }
+  });
+  pegTex.repeat.set(4, 2);
+  var pegMat = new THREE.MeshStandardMaterial({map: pegTex, roughness:0.7});
+  // osma stol: usti 0.75 m, ostida 3 ta tortma
+  bx(0,DX1,0.72,0.75,2.38,DZ,M.trim,gDoor);
+  bx(0,DX1,0.58,0.72,2.40,DZ,M.trim,gDoor);
+  [[0.03,0.72],[0.75,1.45],[1.48,2.17]].forEach(function(s){
+    bx(s[0],s[1],0.595,0.705,2.388,2.40,M.bedFront,gDoor);
+    bx((s[0]+s[1])/2-0.08,(s[0]+s[1])/2+0.08,0.69,0.696,2.384,2.388,M.dark,gDoor,true);
+  });
+  // pegboard (teshikli yog'och panel) + qog'ozlar
+  bx(0.10,2.10,0.82,1.32,DZ-0.015,DZ,pegMat,gDoor);
+  [[0.30,1.12,0.12,0.16],[0.55,1.03,0.10,0.13],[0.95,1.15,0.14,0.10],[1.50,1.00,0.16,0.20],[1.80,1.18,0.10,0.08]].forEach(function(n){
+    bx(n[0],n[0]+n[2],n[1],n[1]+n[3],DZ-0.018,DZ-0.015,M.sheet,gDoor,true);
+  });
+  // ochiq javon + LED, kitoblar
+  bx(0,DX1,1.38,1.405,2.63,DZ,M.trim,gDoor);
+  bx(0.02,DX1-0.02,1.372,1.378,2.64,2.66,M.led,gDoor,true);
+  var rB = rng(41), bookCols = ['#E9E4DA','#D8CFC0','#C2B5A2','#F3F0EA','#A89A86','#8C8A84'];
+  [[0.12,0.95],[1.35,1.95]].forEach(function(seg){
+    var x = seg[0];
+    while (x < seg[1]){
+      var t = 0.025 + rB()*0.025, hb = 0.17 + rB()*0.08;
+      bx(x, x+t, 1.405, 1.405+hb, 2.66, 2.84, mat(bookCols[Math.floor(rB()*bookCols.length)],{roughness:0.8}), gDoor);
+      x += t + 0.003;
+    }
+  });
+  // osma shkaflar — oval rifli shisha eshiklar (4 ta)
+  bx(0,DX1,1.72,2.48,2.53,DZ,M.trim,gDoor);
+  bx(0.02,DX1-0.02,1.712,1.718,2.55,2.57,M.led,gDoor,true);
+  for (var di=0; di<4; di++){
+    var dx0 = di*0.55 + 0.002, dx1 = (di+1)*0.55 - 0.002, dcx = (dx0+dx1)/2;
+    var ds = new THREE.Shape();
+    ds.moveTo(dx0,1.725); ds.lineTo(dx1,1.725); ds.lineTo(dx1,2.475); ds.lineTo(dx0,2.475); ds.lineTo(dx0,1.725);
+    ds.holes.push(stadium(new THREE.Path(), dcx, 2.10, 0.34, 0.60));
+    var dm = new THREE.Mesh(new THREE.ExtrudeGeometry(ds, {depth:0.018, bevelEnabled:false, curveSegments:20}), M.door);
+    dm.position.z = 2.512; dm.castShadow = true; gDoor.add(dm);
+    var gl = new THREE.Mesh(new THREE.ShapeGeometry(stadium(new THREE.Shape(), dcx, 2.10, 0.34, 0.60), 20), M.glass);
+    gl.position.z = 2.522; gDoor.add(gl);
+  }
+  // stol lampasi (qo'ziqorin shakli), noutbuk, gul
+  var lampStem = new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.30,12), M.trim); lampStem.position.set(0.28,0.90,2.72); gDoor.add(lampStem);
+  var lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.08,0.02,24), M.trim); lampBase.position.set(0.28,0.76,2.72); gDoor.add(lampBase);
+  var dome = new THREE.Mesh(new THREE.SphereGeometry(0.13,28,14,0,Math.PI*2,0,Math.PI/2), M.lamp); dome.position.set(0.28,1.03,2.72); dome.castShadow = true; gDoor.add(dome);
+  var deskLight = new THREE.PointLight(col('#ffd9a8'), 0.0, 2.2); deskLight.position.set(0.28,0.97,2.68); scene.add(deskLight);
+  var alu = mat('#D6D7DA', {roughness:0.35, metalness:0.6});
+  bx(1.02,1.36,0.75,0.765,2.50,2.72,alu,gDoor);
+  var scr = new THREE.Mesh(new THREE.BoxGeometry(0.34,0.23,0.008), alu);
+  scr.rotation.x = 0.25; scr.position.set(1.19, 0.765+0.115*Math.cos(0.25), 2.72+0.115*Math.sin(0.25)); scr.castShadow = true; gDoor.add(scr);
+  var pot = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.05,0.10,20), M.trim); pot.position.set(1.95,0.80,2.74); gDoor.add(pot);
+  var leaf = new THREE.Mesh(new THREE.SphereGeometry(0.075,16,12), mat('#6F8A5B')); leaf.position.set(1.95,0.90,2.74); leaf.scale.y = 0.8; gDoor.add(leaf);
+  // stul — yumshoq, kulrang-havorang
+  var chairM = mat('#C3CCD3', {roughness:0.95});
+  var CX0 = 0.88, CX1 = 1.36;
+  bx(CX0,CX1,0.40,0.48,2.00,2.46,chairM);
+  bx(CX0,CX1,0.48,0.88,1.98,2.05,chairM);
+  [[CX0+0.03,2.03],[CX1-0.03,2.03],[CX0+0.03,2.43],[CX1-0.03,2.43]].forEach(function(p){ bx(p[0]-0.012,p[0]+0.012,0,0.40,p[1]-0.012,p[1]+0.012,M.metal); });
+  }
+
+  // ---------- door (0.85 × 2.17, opens inward against the right wall) ----------
+  var pivot = new THREE.Group(); pivot.position.set(3.45, 0, D-0.02); scene.add(pivot);
+  bx(-0.85,0,0.005,2.165,-0.02,0.02,M.door,pivot);
+  bx(-0.75,-0.10,1.20,2.02,-0.026,-0.02,M.trim,pivot);
+  bx(-0.75,-0.10,0.12,1.08,-0.026,-0.02,M.trim,pivot);
+  var handle = new THREE.Mesh(new THREE.CylinderGeometry(0.009,0.009,0.13,12), M.metal); handle.rotation.z = Math.PI/2; handle.position.set(-0.72,1.0,-0.05); pivot.add(handle);
+  var handle2 = handle.clone(); handle2.position.z = 0.05; pivot.add(handle2);
+  var doorOpen = true, doorAngle = -Math.PI/2*0.96, doorTarget = doorAngle;
+  pivot.rotation.y = doorAngle;
+
+  // ---------- views ----------
+  var views = {
+    corner: {p:[5.4,3.8,-1.8], t:[1.6,1.1,1.3]},
+    desk:   {p:[1.55,1.45,1.15], t:[1.05,1.05,2.88]},
+    door:   {p:[3.02,1.62,3.75], t:[1.3,1.1,0.8]},
+    bed:    {p:[1.95,0.95,2.72], t:[1.35,0.50,0.60]},
+    loft:   {p:[0.80,2.25,1.50], t:[2.55,1.85,0.85]},
+    stair:  {p:[2.05,1.50,2.78], t:[0.25,0.85,0.95]},
+    closet: {p:[2.98,1.58,1.62], t:[3.25,1.25,0.10]},
+    top:    {p:[1.82,6.4,1.445], t:[1.82,0,1.44]}
+  };
+  var tween = null;
+  function goView(name, instant){
+    var v = views[name];
+    document.querySelectorAll('[data-view]').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.view===name ? 'true' : 'false'); });
+    var to = {p:new THREE.Vector3().fromArray(v.p), t:new THREE.Vector3().fromArray(v.t)};
+    if (instant || reduceMotion){ camera.position.copy(to.p); controls.target.copy(to.t); controls.update(); tween = null; return; }
+    tween = {from:{p:camera.position.clone(), t:controls.target.clone()}, to:to, t0:performance.now(), dur:900};
+  }
+  controls.addEventListener('start', function(){ tween = null; });
+  document.querySelectorAll('[data-view]').forEach(function(b){ b.addEventListener('click', function(){ goView(b.dataset.view); }); });
+
+  var tDoor = document.getElementById('t-door');
+  tDoor.addEventListener('click', function(){
+    doorOpen = !doorOpen; doorTarget = doorOpen ? -Math.PI/2*0.96 : 0;
+    tDoor.setAttribute('aria-pressed', doorOpen ? 'true' : 'false');
+    tDoor.textContent = doorOpen ? 'Eshik ochiq' : 'Eshik yopiq';
+  });
+  var night = false, tNight = document.getElementById('t-night');
+  function applyLight(){
+    hemi.intensity = night ? 0.10 : 0.55;
+    amb.intensity = night ? 0.04 : 0.16;
+    ceilLight.intensity = night ? 0.0 : 0.6;
+    M.lamp.emissiveIntensity = night ? 0.25 : 0.6;
+    closetLight.intensity = night ? 0.75 : 0.4;
+    bedLight.intensity = night ? 0.6 : 0.2;
+    loftLight.intensity = night ? 0.7 : 0.25;
+    tvScreen.emissiveIntensity = night ? 0.9 : 0.0;
+    if (deskLight) deskLight.intensity = night ? 0.5 : 0.0;
+    M.led.emissiveIntensity = night ? 1.6 : 0.9;
+    M.glass.emissiveIntensity = night ? 0.6 : 0.25;
+  }
+  tNight.addEventListener('click', function(){ night = !night; tNight.setAttribute('aria-pressed', night ? 'true' : 'false'); applyLight(); });
+  applyLight();
+
+  // ---------- sizing / loop ----------
+  function resize(){
+    var w = stage.clientWidth, h = stage.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w/h;
+    camera.fov = w/h < 0.8 ? 68 : 55;
+    camera.updateProjectionMatrix();
+  }
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(stage); else window.addEventListener('resize', resize);
+  resize();
+  goView('corner', true);
+
+  var tmp = new THREE.Vector3();
+  function ease(x){ return x<0.5 ? 4*x*x*x : 1-Math.pow(-2*x+2,3)/2; }
+  function loop(now){
+    if (tween){
+      var k = Math.min(1, (now - tween.t0)/tween.dur), e = ease(k);
+      camera.position.lerpVectors(tween.from.p, tween.to.p, e);
+      controls.target.lerpVectors(tween.from.t, tween.to.t, e);
+      if (k >= 1) tween = null;
+    }
+    if (Math.abs(doorTarget - doorAngle) > 0.001){
+      doorAngle += (doorTarget - doorAngle) * (reduceMotion ? 1 : 0.12);
+      pivot.rotation.y = doorAngle;
+    }
+    controls.update();
+    for (var i=0;i<wallDefs.length;i++){
+      var wd = wallDefs[i];
+      tmp.copy(camera.position).sub(wd.p);
+      wd.grp.visible = tmp.dot(wd.n) > 0;
+    }
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  var hint = document.getElementById('hint');
+  renderer.domElement.addEventListener('pointerdown', function(){ hint.hidden = true; }, {once:true});
+})();
+</script>
+</body>
+</html>
