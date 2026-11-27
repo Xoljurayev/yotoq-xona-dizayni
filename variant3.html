@@ -222,10 +222,12 @@ body{margin:0}
       <section class="card">
         <h2>Ranglar va materiallar</h2>
         <div class="sw">
-          <div><i style="background:#ECE6DC"></i>Devor — sut rang</div>
-          <div><i style="background:#E6DFD3"></i>Shkaf eshiklari — och bej, matt</div>
+          <div><i style="background:#F0E4C8"></i>Devor — qaymoq rang aboy</div>
+          <div><i style="background:#C8B9A5"></i>Shkaf eshiklari — iliq kulrang-bej, matt</div>
+          <div><i style="background:#C6A078"></i>Korpus va tokchalar — dub</div>
           <div><i style="background:#1E1C1A"></i>Tutqichlar — qora, uzun</div>
-          <div><i style="background:#D9D2C6"></i>Yumshoq panellar</div>
+          <div><i style="background:#A89880"></i>Yumshoq panellar — mato</div>
+          <div><i style="background:#8A9079"></i>Pled — xira yashil</div>
           <div><i style="background:#6B4429"></i>Pol — yong'oq, yolka</div>
           <div><i style="background:#A8A296"></i>Gilam — zigzag naqsh</div>
         </div>
@@ -290,6 +292,14 @@ body{margin:0}
   }
   function bx(x0,x1,y0,y1,z0,z1,m,parent,noShadow){
     var me = new THREE.Mesh(new THREE.BoxGeometry(x1-x0, y1-y0, z1-z0), m);
+    var T = m.userData && m.userData.tile;      // [eni, bo'yi] metrda: to'qima cho'zilib ketmasin
+    if (T){
+      var uv = me.geometry.attributes.uv, dx = x1-x0, dy = y1-y0, dz = z1-z0, ou = uvR(), ov = uvR();
+      for (var ui=0; ui<24; ui++){
+        var f = ui>>2, su = f<2 ? dz : dx, sv = (f===2 || f===3) ? dz : dy;   // yuzlar: +-x, +-y, +-z
+        uv.setXY(ui, uv.getX(ui)*su/T[0] + ou, uv.getY(ui)*sv/T[1] + ov);
+      }
+    }
     me.position.set((x0+x1)/2, (y0+y1)/2, (z0+z1)/2);
     if (!noShadow){ me.castShadow = true; me.receiveShadow = true; }
     (parent || scene).add(me);
@@ -372,10 +382,52 @@ body{margin:0}
     }
   });
   houndTex.repeat.set(3,3);
+  var uvR = rng(99);
+  // aboy: qaymoq rang, mayin mato to'qimasi
+  var wallTex = canvasTex(256, 256, function(g, w, h){
+    g.fillStyle = '#F0E4C8'; g.fillRect(0,0,w,h);
+    var r = rng(17);
+    for (var i=0;i<2600;i++){
+      var x = r()*w, y = r()*h, L = 4 + r()*14;
+      g.strokeStyle = 'rgba(' + (r()<0.5 ? '255,250,235,' : '150,120,80,') + (0.05 + r()*0.07) + ')';
+      g.lineWidth = 1;
+      g.beginPath(); g.moveTo(x, y);
+      if (r()<0.5) g.lineTo(x+L, y); else g.lineTo(x, y+L);
+      g.stroke();
+    }
+  });
+  // dub yog'och: tolasi tik
+  var woodTex = canvasTex(512, 1024, function(g, w, h){
+    g.fillStyle = '#C6A078'; g.fillRect(0,0,w,h);
+    var r = rng(41), i, x, y;
+    for (i=0;i<14;i++){
+      x = r()*w; var bw = 20 + r()*70;
+      g.fillStyle = 'rgba(' + (r()<0.5 ? '255,236,205,' : '96,62,30,') + (0.05 + r()*0.07) + ')';
+      g.fillRect(x,0,bw,h); if (x+bw > w) g.fillRect(x-w,0,bw,h);
+    }
+    for (i=0;i<260;i++){
+      var x0 = r()*w, amp = 2 + r()*7, ph = r()*6.2832, k = 1 + Math.floor(r()*3);
+      g.strokeStyle = 'rgba(' + (r()<0.35 ? '255,240,215,' : '84,52,24,') + (0.06 + r()*0.14) + ')';
+      g.lineWidth = 0.5 + r()*1.6;
+      g.beginPath();
+      for (y=0; y<=h; y+=16){ x = x0 + Math.sin(ph + y/h*6.2832*k)*amp; if (y===0) g.moveTo(x,y); else g.lineTo(x,y); }
+      g.stroke();
+    }
+  });
+  // mato: mayda to'qima, rangi material rangidan olinadi
+  var fabricTex = canvasTex(128, 128, function(g, w, h){
+    var r = rng(5);
+    for (var y=0;y<h;y+=2) for (var x=0;x<w;x+=2){ var v = 200 + Math.floor(r()*55); g.fillStyle = 'rgb('+v+','+v+','+v+')'; g.fillRect(x,y,2,2); }
+  });
+  function fabric(hex, tile){
+    var m = new THREE.MeshStandardMaterial({map: fabricTex, color: col(hex), roughness: 1});
+    m.userData.tile = [tile || 0.12, tile || 0.12];
+    return m;
+  }
 
   // ---------- materials ----------
   var M = {
-    wall: mat('#ECE6DC', {roughness:0.95}),
+    wall: new THREE.MeshStandardMaterial({map: wallTex, roughness:0.95}),
     ceil: mat('#F7F5F1', {roughness:0.95}),
     trim: mat('#F5F3EF', {roughness:0.6}),
     floor: new THREE.MeshStandardMaterial({map: parquetTex, roughness:0.55, metalness:0}),
@@ -397,6 +449,9 @@ body{margin:0}
     led: new THREE.MeshStandardMaterial({color: col('#ffe7c2'), emissive: col('#ffd9a0'), emissiveIntensity: 0.9, roughness:0.4}),
     lamp: new THREE.MeshStandardMaterial({color: col('#fffaf0'), emissive: col('#fff1d6'), emissiveIntensity: 0.6, roughness:0.4})
   };
+  M.wall.userData.tile = [0.6, 0.6];
+  M.duvet = fabric('#F3EEE4', 0.16);
+  M.throwM = fabric('#8A9079', 0.10);
   var glassTex = flutedTex(); glassTex.repeat.set(3,1);
   M.glass = new THREE.MeshStandardMaterial({map: glassTex, transparent:true, opacity:0.62, roughness:0.25, emissive: col('#4a3a26'), emissiveIntensity: 0.25, side: THREE.DoubleSide});
 
@@ -405,6 +460,8 @@ body{margin:0}
   function wallGroup(n, p){ var grp = new THREE.Group(); scene.add(grp); wallDefs.push({grp:grp, n:new THREE.Vector3(n[0],n[1],n[2]), p:new THREE.Vector3(p[0],p[1],p[2])}); return grp; }
   function plane(w,h,m,pos,rx,ry,parent){
     var me = new THREE.Mesh(new THREE.PlaneGeometry(w,h), m);
+    var T = m.userData && m.userData.tile;
+    if (T){ var uv = me.geometry.attributes.uv; for (var ui=0; ui<uv.count; ui++) uv.setXY(ui, uv.getX(ui)*w/T[0], uv.getY(ui)*h/T[1]); }
     me.position.set(pos[0],pos[1],pos[2]); me.rotation.set(rx||0, ry||0, 0);
     me.receiveShadow = true; parent.add(me); return me;
   }
@@ -451,11 +508,11 @@ body{margin:0}
   bx(W-0.012,W,0,0.08,0,D,M.trim,gRight); bx(W-0.05,W,2.75,2.80,0,D,M.trim,gRight); frieze(gRight,'z',0,D,W,-1);
 
   // ================= 3-VARIANT: «П» shkaf — karavot boshi chap devorda =================
-  var frontM  = mat('#E6DFD3', {roughness:0.75});   // och bej matt eshiklar
-  var bodyM   = mat('#DCD4C7', {roughness:0.8});
+  var frontM  = mat('#C8B9A5', {roughness:0.75});   // iliq kulrang-bej matt eshiklar (qaymoq devordan ajralib tursin)
+  var bodyM   = new THREE.MeshStandardMaterial({map: woodTex, roughness:0.6}); bodyM.userData.tile = [0.5, 1.4];   // korpus va tokchalar: dub
   var innerM  = mat('#EBE6DE', {roughness:0.85});
   var handleM = mat('#1E1C1A', {roughness:0.35, metalness:0.5});
-  var softM   = mat('#D9D2C6', {roughness:1});
+  var softM   = fabric('#A89880', 0.10);
   var clothCols = ['#E7E1D6','#CFC6B8','#8E8579','#3C3A37','#B7AE9C','#6E7461','#F0ECE4','#A99A86','#2F3135'];
   var rC = rng(11);
   var TOP = H - 0.005;
@@ -475,7 +532,10 @@ body{margin:0}
   function door(xFace, dirX, hz, len, y0, y1){
     var p = new THREE.Group(); p.position.set(xFace + dirX*0.009, 0, hz); scene.add(p);
     var s = len > 0 ? 1 : -1, a = Math.abs(len);
-    bx(-0.009, 0.009, y0, y1, s>0 ? 0.002 : -a+0.002, s>0 ? a-0.002 : -0.002, frontM, p);
+    var za = s>0 ? 0.003 : -a+0.003, zb = s>0 ? a-0.003 : -0.003;
+    bx(-0.004, 0.009, y0, y1, za, zb, frontM, p);                                     // old yuzi
+    bx(-0.0055, -0.004, y0-0.004, y1+0.002, za-0.003, zb+0.003, M.dark, p, true);     // atrofida qora tirqish chizig'i
+    bx(-0.009, -0.0055, y0, y1, za, zb, innerM, p);                                   // ichki yuzi
     var hzr = s*(a-0.05);
     bx(dirX>0 ? 0.009 : -0.021, dirX>0 ? 0.021 : -0.009, 0.95, 1.55, hzr-0.008, hzr+0.008, handleM, p);
     cabAnims.push(addAnim(p, 'y', 1.45*dirX*s));
@@ -505,10 +565,12 @@ body{margin:0}
     bx(0.012,CD,0.05,0.87,zc-0.009,zc+0.009,bodyM);                  // o'rtadagi tik to'siq (tokcha balandligigacha)
     bx(0.012,CD,0.05,0.068,o0,o1,innerM);                            // chetdagi yarmining tagi
     bx(0.012,CD,0.05,0.55,b0,b1,innerM);                             // tortmalar qutisi
+    bx(CD-0.001,CD+0.002,0.05,0.55,f0-0.003,f1+0.003,M.dark,null,true);   // tortmalar orasidagi qora tirqish
     [[0.06,0.295],[0.305,0.545]].forEach(function(r){
-      bx(CD,CD+0.018,r[0],r[1],f0,f1,frontM);
-      bx(CD+0.018,CD+0.03,r[1]-0.045,r[1]-0.035,fc-0.09,fc+0.09,handleM,null,true);
+      bx(CD+0.002,CD+0.02,r[0],r[1],f0,f1,frontM);
+      bx(CD+0.02,CD+0.032,r[1]-0.045,r[1]-0.035,fc-0.09,fc+0.09,handleM,null,true);
     });
+    bx(0.012,0.017,0.57,0.85,b0,b1,bodyM);                           // tokcha orqasi: dub
     bx(0.012,CD,0.55,0.57,e0,e1,bodyM);                              // tumbochka tokchasi
     bx(0.012,CD,0.85,0.87,e0,e1,bodyM);
     bx(0.04,CD-0.04,0.843,0.85,b0+0.022,b1-0.022,M.led,null,true);
@@ -525,8 +587,9 @@ body{margin:0}
   // ---------- karavot ustida «ko'prik»: 4 ta quti + LED li ochiq tokcha ----------
   var BR0 = 0.55, BR1 = 2.33, BRD = 0.40, BQ = (BR1-BR0)/4;
   bx(0,BRD,2.00,TOP,BR0,BR1,bodyM);
-  for (var q=0;q<4;q++){ var qa = BR0 + q*BQ; bx(BRD,BRD+0.018,2.003,TOP-0.003,qa+0.0015,qa+BQ-0.0015,frontM); }
-  bx(0,0.012,1.64,2.00,BR0,BR1,mat('#EFE6D2',{roughness:0.9}));
+  bx(BRD-0.001,BRD+0.002,2.00,TOP,BR0,BR1,M.dark,null,true);       // qutilar orasidagi qora tirqish
+  for (var q=0;q<4;q++){ var qa = BR0 + q*BQ; bx(BRD+0.002,BRD+0.02,2.004,TOP-0.003,qa+0.003,qa+BQ-0.003,frontM); }
+  bx(0,0.012,1.64,2.00,BR0,BR1,bodyM);
   bx(0,0.34,1.64,1.66,BR0,BR1,bodyM);
   for (q=1;q<4;q++){ var qd = BR0 + q*BQ; bx(0.012,0.34,1.66,2.00,qd-0.009,qd+0.009,bodyM); }
   bx(0.28,0.32,1.993,2.0,BR0+0.01,BR1-0.01,M.led,null,true);
@@ -547,7 +610,7 @@ body{margin:0}
 
   // ---------- ko'tariladigan karavot 2.10 × 1.75, ostida bo'limli quti ----------
   var BZ0 = 0.565, BZ1 = 2.315, BZc = (BZ0+BZ1)/2, BXH = 0.06, BXF = 2.16;
-  var baseM = mat('#D8D0C3', {roughness:0.95});
+  var baseM = fabric('#B9AC99', 0.10);
   bx(BXH+0.04,BXF-0.04,0,0.04,BZ0+0.04,BZ1-0.04,M.dark);
   bx(BXH,BXF,0.04,0.06,BZ0,BZ1,innerM);
   bx(BXH,BXH+0.04,0.06,0.32,BZ0,BZ1,baseM);
@@ -604,6 +667,11 @@ body{margin:0}
   scene.add(ceilLight);
   var hemi = new THREE.HemisphereLight(col('#fff6ea'), col('#7a5a3c'), 0.55); scene.add(hemi);
   var amb = new THREE.AmbientLight(col('#ffffff'), 0.16); scene.add(amb);
+  // kunduzgi yo'nalgan nur (chap devor tomondan): soya va hajm beradi
+  var sun = new THREE.DirectionalLight(col('#fff1dc'), 0.55);
+  sun.position.set(-1.5, 3.2, 4.2); sun.target.position.set(2.0, 0.5, 0.6); scene.add(sun); scene.add(sun.target);
+  sun.castShadow = true; sun.shadow.mapSize.set(2048,2048); sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.02;
+  var sc = sun.shadow.camera; sc.left = -3.4; sc.right = 3.4; sc.top = 3.4; sc.bottom = -3.4; sc.near = 0.5; sc.far = 12; sc.updateProjectionMatrix();
 
   // ---------- door (0.85 × 2.17, opens inward against the right wall) ----------
   var pivot = new THREE.Group(); pivot.position.set(3.45, 0, D-0.02); scene.add(pivot);
@@ -651,9 +719,10 @@ body{margin:0}
   toggler('t-lift', [lidAnim], "Karavot ko'tarilgan", 'Karavot yopiq');
   var night = false, tNight = document.getElementById('t-night');
   function applyLight(){
-    hemi.intensity = night ? 0.10 : 0.55;
+    hemi.intensity = night ? 0.10 : 0.42;
+    sun.intensity = night ? 0 : 0.55;
     amb.intensity = night ? 0.04 : 0.16;
-    ceilLight.intensity = night ? 0.0 : 0.6;
+    ceilLight.intensity = night ? 0.0 : 0.5;
     M.lamp.emissiveIntensity = night ? 0.25 : 0.6;
     nicheLight.intensity = night ? 0.6 : 0.15;
     if (deskLight) deskLight.intensity = night ? 0.5 : 0.0;
