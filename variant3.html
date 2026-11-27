@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Yotoq xona 3-variant</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: bitta ustun — tepada 3D sahna, pastida masshtabdagi plan va o'lchamlar/materiallar */
+:root{
+  --bg:#F1F0ED; --surface:#FFFFFF; --fg:#23211E; --muted:#6F6A63; --line:#DCD8D1;
+  --accent:#8B6542; --accent-ink:#FFFFFF; --stage:#E6E2DB;
+  --plan-bed:#E9E3D9; --plan-soft:#B9C4CC; --plan-closet:#EFE8DC; --plan-wood:#C49A6C;
+  --font-body:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#151513; --surface:#1E1D1B; --fg:#ECE8E2; --muted:#A39D94; --line:#35322E;
+    --accent:#CDA57B; --accent-ink:#1B140E; --stage:#25231F;
+    --plan-bed:#3A3631; --plan-soft:#4E5A63; --plan-closet:#2D2A25; --plan-wood:#9A7650;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#151513; --surface:#1E1D1B; --fg:#ECE8E2; --muted:#A39D94; --line:#35322E;
+  --accent:#CDA57B; --accent-ink:#1B140E; --stage:#25231F;
+  --plan-bed:#3A3631; --plan-soft:#4E5A63; --plan-closet:#2D2A25; --plan-wood:#9A7650;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--fg); font-family:var(--font-body); font-size:15px; line-height:1.55;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:20px 48px;
+}
+.wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:22px}
+header{display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px 28px}
+header .t{min-width:0}
+.eyebrow{font-family:var(--font-mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent)}
+h1{font-size:clamp(28px,4.4vw,44px); line-height:1.05; margin:.15em 0 .2em; font-weight:800; letter-spacing:-.02em; text-wrap:balance}
+.lead{margin:0; color:var(--muted); max-width:62ch}
+.facts{display:flex; gap:8px; flex-wrap:wrap}
+.fact{font-family:var(--font-mono); font-size:13px; padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:var(--surface); font-variant-numeric:tabular-nums; white-space:nowrap}
+
+.stage-wrap{position:relative; border-radius:14px; overflow:hidden; background:var(--stage); border:1px solid var(--line)}
+#stage{width:100%; height:clamp(380px, 64vh, 700px); touch-action:none}
+#stage canvas{display:block; width:100%; height:100%}
+.toolbar{position:absolute; left:10px; right:10px; bottom:10px; display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:flex-end; pointer-events:none}
+.seg{display:flex; flex-wrap:wrap; gap:4px; padding:4px; border-radius:12px; background:color-mix(in srgb, var(--surface) 88%, transparent); border:1px solid var(--line); backdrop-filter:blur(8px); pointer-events:auto}
+.seg button{font:600 13px/1 var(--font-body); color:var(--fg); background:transparent; border:0; border-radius:8px; padding:9px 11px; cursor:pointer}
+.seg button:hover{background:color-mix(in srgb, var(--accent) 14%, transparent)}
+.seg button[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink)}
+.seg button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.hint{position:absolute; top:10px; left:10px; font-size:12px; color:var(--muted); background:color-mix(in srgb, var(--surface) 80%, transparent); padding:5px 9px; border-radius:8px; pointer-events:none}
+.err{position:absolute; inset:0; display:grid; place-items:center; text-align:center; padding:24px; color:var(--muted)}
+
+.grid{display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); gap:18px}
+@media (max-width:900px){ .grid{grid-template-columns:minmax(0,1fr)} }
+.card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px; min-width:0}
+.card h2{font-size:17px; margin:0 0 12px; font-weight:700}
+.plan-scroll{overflow-x:auto}
+.plan-scroll svg{display:block; width:100%; min-width:340px; height:auto}
+svg text{font-family:var(--font-mono); fill:var(--fg)}
+svg .m{fill:var(--muted)}
+table{width:100%; border-collapse:collapse; font-size:14px}
+td{padding:7px 0; border-bottom:1px solid var(--line); vertical-align:top}
+td:last-child{text-align:right; font-family:var(--font-mono); font-variant-numeric:tabular-nums; white-space:nowrap; padding-left:12px}
+tr.sum td{font-weight:700; border-bottom:0}
+.sw{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px}
+.sw div{display:flex; gap:10px; align-items:center; font-size:13px; min-width:0}
+.sw i{flex:none; width:30px; height:30px; border-radius:8px; border:1px solid var(--line)}
+.todo{margin:0; padding-left:18px; color:var(--muted)}
+.todo b{color:var(--fg); font-weight:600}
+.stack{display:flex; flex-direction:column; gap:18px; min-width:0}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+</style>
+
+<style>
+body{margin:0}
+.back{display:inline-block; align-self:flex-start; font:600 14px/1 var(--font-body); color:var(--accent); text-decoration:none; padding:8px 12px; border:1px solid var(--line); border-radius:999px; background:var(--surface)}
+.back:hover{border-color:var(--accent)}
+.back:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="./">← Variantlar</a>
+
+  <header>
+    <div class="t">
+      <div class="eyebrow">Loyiha · 3-variant · 3D ko'rinish</div>
+      <h1>Yotoq xona, «П» shkaf bilan</h1>
+      <p class="lead">Karavot boshi chap devorga qo'yiladi. Ikki yonida shiftgacha shkaf, ustida qutilar va LED chiroqli ochiq tokcha bor. Karavot ko'tariladi, ostida bo'limli quti. O'ng devorda 2 eshikli shkaf va dars stoli turadi.</p>
+    </div>
+    <div class="facts">
+      <span class="fact">3.64 × 2.88 m</span>
+      <span class="fact">shift 2.80 m</span>
+      <span class="fact">5 ta shkaf bo'limi</span>
+    </div>
+  </header>
+
+  <div class="stage-wrap">
+    <div id="stage" aria-label="Yotoq xonaning 3D modeli"></div>
+    <div class="hint" id="hint">Barmoq yoki sichqoncha bilan aylantiring · ikki barmoq bilan yaqinlashtiring</div>
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="Ko'rinish">
+        <button id="v-corner" data-view="corner" aria-pressed="true">Umumiy</button>
+        <button id="v-door" data-view="door" aria-pressed="false">Eshikdan</button>
+        <button id="v-bed" data-view="bed" aria-pressed="false">Karavot boshi</button>
+        <button id="v-wardrobe" data-view="wardrobe" aria-pressed="false">Shkaf</button>
+        <button id="v-desk" data-view="desk" aria-pressed="false">Stol</button>
+        <button id="v-top" data-view="top" aria-pressed="false">Tepadan</button>
+      </div>
+      <div class="seg" role="group" aria-label="Sozlamalar">
+        <button id="t-door" aria-pressed="true">Eshik ochiq</button>
+        <button id="t-cab" aria-pressed="false">Shkaflar yopiq</button>
+        <button id="t-lift" aria-pressed="false">Karavot yopiq</button>
+        <button id="t-night" aria-pressed="false">Kechki yorug'lik</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Plan, tepadan (masshtab 1:50 nisbatda)</h2>
+      <div class="plan-scroll">
+      <svg viewBox="-78 -74 520 452" role="img" aria-label="Xona plani o'lchamlari bilan">
+        <!-- gilam -->
+        <rect x="125" y="30" width="173" height="172" fill="none" stroke="var(--muted)" stroke-dasharray="2 3"/>
+        <!-- shkaf ustunlari -->
+        <rect x="0" y="0" width="60" height="55" fill="var(--plan-closet)" stroke="var(--fg)" stroke-width="1.2"/>
+        <rect x="0" y="233" width="60" height="55" fill="var(--plan-closet)" stroke="var(--fg)" stroke-width="1.2"/>
+        <text x="30" y="31" font-size="9" text-anchor="middle">shkaf</text>
+        <text x="30" y="264" font-size="9" text-anchor="middle">shkaf</text>
+        <!-- karavot -->
+        <rect x="6" y="56.5" width="210" height="175" fill="var(--plan-bed)" stroke="var(--fg)" stroke-width="1.2"/>
+        <rect x="0" y="55" width="6" height="178" fill="var(--plan-soft)"/>
+        <rect x="14" y="66" width="28" height="70" rx="8" fill="var(--surface)" stroke="var(--muted)"/>
+        <rect x="14" y="152" width="28" height="70" rx="8" fill="var(--surface)" stroke="var(--muted)"/>
+        <rect x="1" y="55" width="40" height="178" fill="none" stroke="var(--plan-wood)" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="54" y="144" font-size="8" text-anchor="middle" class="m" transform="rotate(-90 54 144)">ustida qutilar + LED tokcha</text>
+        <text x="132" y="138" font-size="12" text-anchor="middle">KARAVOT</text>
+        <text x="132" y="154" font-size="10" text-anchor="middle" class="m">2.10 × 1.75 · ko'tariladi</text>
+        <text x="138" y="32" font-size="9" text-anchor="middle" class="m">o'tish 0.55</text>
+        <text x="138" y="264" font-size="9" text-anchor="middle" class="m">o'tish 0.55</text>
+        <!-- o'ng shkaf, stol, puf -->
+        <rect x="304" y="0" width="60" height="120" fill="var(--plan-closet)" stroke="var(--fg)" stroke-width="1.2"/>
+        <line x1="304" y1="60" x2="364" y2="60" stroke="var(--muted)" stroke-dasharray="3 3"/>
+        <text x="334" y="52" font-size="9" text-anchor="middle">shkaf</text>
+        <text x="334" y="76" font-size="8" text-anchor="middle" class="m">2 eshik</text>
+        <rect x="314" y="121" width="50" height="78" fill="var(--plan-wood)" stroke="var(--fg)" stroke-width="1"/>
+        <text x="341" y="162" font-size="9" text-anchor="middle" transform="rotate(90 341 162)">stol</text>
+        <rect x="270" y="144" width="36" height="36" rx="5" fill="var(--plan-soft)"/>
+        <text x="288" y="196" font-size="8" text-anchor="middle" class="m">puf</text>
+        <text x="260" y="100" font-size="9" text-anchor="middle" class="m" transform="rotate(-90 260 100)">o'tish 0.88</text>
+        <!-- xona devorlari -->
+        <path d="M0 0 H364 V288 M0 0 V288 H260 M345 288 H364" fill="none" stroke="var(--fg)" stroke-width="7" stroke-linecap="square"/>
+        <!-- eshik -->
+        <line x1="345" y1="288" x2="345" y2="203" stroke="var(--fg)" stroke-width="3"/>
+        <path d="M260 288 A85 85 0 0 1 345 203" fill="none" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="302" y="306" font-size="10" text-anchor="middle">eshik 0.85</text>
+        <!-- o'lcham: tepa -->
+        <g stroke="var(--muted)" stroke-width="1">
+          <line x1="0" y1="-22" x2="364" y2="-22"/>
+          <line x1="0" y1="-28" x2="0" y2="-16"/><line x1="216" y1="-28" x2="216" y2="-16"/>
+          <line x1="304" y1="-28" x2="304" y2="-16"/><line x1="364" y1="-28" x2="364" y2="-16"/>
+          <line x1="0" y1="-52" x2="364" y2="-52"/>
+          <line x1="0" y1="-58" x2="0" y2="-46"/><line x1="364" y1="-58" x2="364" y2="-46"/>
+        </g>
+        <text x="108" y="-28" font-size="10" text-anchor="middle">panel + karavot 2.16</text>
+        <text x="260" y="-28" font-size="10" text-anchor="middle">0.88</text>
+        <text x="334" y="-28" font-size="10" text-anchor="middle">0.60</text>
+        <text x="182" y="-58" font-size="11" text-anchor="middle" font-weight="500">3.64</text>
+        <!-- o'lcham: chap -->
+        <g stroke="var(--muted)" stroke-width="1">
+          <line x1="-30" y1="0" x2="-30" y2="288"/>
+          <line x1="-36" y1="0" x2="-24" y2="0"/><line x1="-36" y1="55" x2="-24" y2="55"/>
+          <line x1="-36" y1="233" x2="-24" y2="233"/><line x1="-36" y1="288" x2="-24" y2="288"/>
+          <line x1="-60" y1="0" x2="-60" y2="288"/>
+          <line x1="-66" y1="0" x2="-54" y2="0"/><line x1="-66" y1="288" x2="-54" y2="288"/>
+        </g>
+        <text x="-36" y="27" font-size="9" text-anchor="middle" transform="rotate(-90 -36 27)">0.55</text>
+        <text x="-36" y="144" font-size="10" text-anchor="middle" transform="rotate(-90 -36 144)">1.78</text>
+        <text x="-36" y="260" font-size="9" text-anchor="middle" transform="rotate(-90 -36 260)">0.55</text>
+        <text x="-66" y="144" font-size="11" text-anchor="middle" font-weight="500" transform="rotate(-90 -66 144)">2.88</text>
+        <!-- o'lcham: o'ng -->
+        <g stroke="var(--muted)" stroke-width="1">
+          <line x1="392" y1="0" x2="392" y2="288"/>
+          <line x1="386" y1="0" x2="398" y2="0"/><line x1="386" y1="120" x2="398" y2="120"/>
+          <line x1="386" y1="199" x2="398" y2="199"/><line x1="386" y1="288" x2="398" y2="288"/>
+        </g>
+        <text x="404" y="60" font-size="10" text-anchor="middle" transform="rotate(90 404 60)">shkaf 1.20</text>
+        <text x="404" y="161" font-size="10" text-anchor="middle" transform="rotate(90 404 161)">stol 0.78</text>
+        <text x="404" y="245" font-size="9" text-anchor="middle" transform="rotate(90 404 244)">eshik 0.89</text>
+        <!-- o'lcham: past -->
+        <g stroke="var(--muted)" stroke-width="1">
+          <line x1="0" y1="328" x2="364" y2="328"/>
+          <line x1="0" y1="322" x2="0" y2="334"/><line x1="260" y1="322" x2="260" y2="334"/>
+          <line x1="345" y1="322" x2="345" y2="334"/><line x1="364" y1="322" x2="364" y2="334"/>
+        </g>
+        <text x="130" y="346" font-size="10" text-anchor="middle">devor 2.60</text>
+        <text x="302" y="346" font-size="10" text-anchor="middle">0.85</text>
+        <text x="356" y="346" font-size="9" text-anchor="middle" class="m">0.19</text>
+      </svg>
+      </div>
+    </section>
+
+    <div class="stack">
+      <section class="card">
+        <h2>Chap devor (2.88 m) bo'ylab</h2>
+        <table>
+          <tr><td>Shkaf ustuni</td><td>0.55</td></tr>
+          <tr><td>Karavot 1.75 + ikki yonida 1.5 sm</td><td>1.78</td></tr>
+          <tr><td>Shkaf ustuni</td><td>0.55</td></tr>
+          <tr class="sum"><td>Jami</td><td>2.88 m</td></tr>
+        </table>
+      </section>
+      <section class="card">
+        <h2>3.64 m devor bo'ylab</h2>
+        <table>
+          <tr><td>Yumshoq panel</td><td>0.06</td></tr>
+          <tr><td>Karavot uzunligi</td><td>2.10</td></tr>
+          <tr><td>O'tish: karavot oyog'idan o'ng shkafgacha</td><td>0.88</td></tr>
+          <tr><td>O'ng shkaf chuqurligi</td><td>0.60</td></tr>
+          <tr class="sum"><td>Jami</td><td>3.64 m</td></tr>
+        </table>
+      </section>
+      <section class="card">
+        <h2>Saqlash joyi</h2>
+        <ul class="todo">
+          <li><b>2 ta ustun</b>: pastda 2 tortma, tumbochka tokchasi, ichida ilgich va 2 javon.</li>
+          <li><b>Karavot ustida</b> 4 ta quti, ostida LED li ochiq tokcha.</li>
+          <li><b>O'ng shkaf 1.20</b>: ilgich, 2 javon, pastda 2 tortma.</li>
+          <li><b>Karavot ostida</b> bo'limli quti, matras ko'tariladi.</li>
+        </ul>
+      </section>
+      <section class="card">
+        <h2>Ranglar va materiallar</h2>
+        <div class="sw">
+          <div><i style="background:#ECE6DC"></i>Devor — sut rang</div>
+          <div><i style="background:#E6DFD3"></i>Shkaf eshiklari — och bej, matt</div>
+          <div><i style="background:#1E1C1A"></i>Tutqichlar — qora, uzun</div>
+          <div><i style="background:#D9D2C6"></i>Yumshoq panel, puf</div>
+          <div><i style="background:#6B4429"></i>Pol — yong'oq, yolka</div>
+          <div><i style="background:#A8A296"></i>Gilam — zigzag naqsh</div>
+        </div>
+      </section>
+      <section class="card">
+        <h2>E'tibor bering</h2>
+        <ul class="todo">
+          <li><b>Deraza</b> chap devorda, karavot boshi ham shu devorda. Deraza o'lchami kelgach, shkaf va qutilar unga to'g'ri kelishini tekshirish kerak.</li>
+          <li><b>Kirib yuriladigan gardirob yo'q</b>, uning o'rnini 3 ta shkaf egallaydi.</li>
+          <li><b>Karavot yonidagi o'tish 0.55</b>, ustun tortmalari shu o'tishga ochiladi.</li>
+          <li><b>Stol kichik</b>: 0.78 × 0.50, eshik ochilgandagi joygacha sig'adigani shu.</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+  var stage = document.getElementById('stage');
+  if (!window.THREE || !THREE.OrbitControls) {
+    stage.innerHTML = '<div class="err">3D kutubxonasi yuklanmadi. Sahifani yangilab ko\'ring.</div>';
+    return;
+  }
+  var W = 3.64, D = 2.88, H = 2.80;
+  var reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- renderer / scene ----------
+  var renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  stage.appendChild(renderer.domElement);
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(55, 1, 0.03, 60);
+  var controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.minDistance = 0.25; controls.maxDistance = 12;
+
+  function setStageBg(){
+    var c = getComputedStyle(document.documentElement).getPropertyValue('--stage').trim() || '#E6E2DB';
+    scene.background = new THREE.Color(c).convertSRGBToLinear();
+  }
+  setStageBg();
+  if (window.matchMedia) {
+    var mq = matchMedia('(prefers-color-scheme: dark)');
+    if (mq.addEventListener) mq.addEventListener('change', setStageBg);
+  }
+  new MutationObserver(setStageBg).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+
+  // ---------- helpers ----------
+  function col(hex){ return new THREE.Color(hex).convertSRGBToLinear(); }
+  function mat(hex, o){
+    var p = {color: col(hex), roughness: 0.85, metalness: 0};
+    if (o) for (var k in o) p[k] = o[k];
+    return new THREE.MeshStandardMaterial(p);
+  }
+  function bx(x0,x1,y0,y1,z0,z1,m,parent,noShadow){
+    var me = new THREE.Mesh(new THREE.BoxGeometry(x1-x0, y1-y0, z1-z0), m);
+    me.position.set((x0+x1)/2, (y0+y1)/2, (z0+z1)/2);
+    if (!noShadow){ me.castShadow = true; me.receiveShadow = true; }
+    (parent || scene).add(me);
+    return me;
+  }
+  function rng(seed){ return function(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function canvasTex(w,h,draw){
+    var c = document.createElement('canvas'); c.width = w; c.height = h;
+    draw(c.getContext('2d'), w, h);
+    var t = new THREE.CanvasTexture(c);
+    t.encoding = THREE.sRGBEncoding;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    return t;
+  }
+
+  // ---------- textures ----------
+  var parquetTex = canvasTex(1024, 1024, function(g, w, h){
+    var cols = 8, cw = w/cols, rows = 24, ph = h/rows, r = rng(7);
+    var tones = [];
+    for (var i=0;i<cols*rows;i++) tones.push(26 + r()*12);
+    g.fillStyle = '#3d2716'; g.fillRect(0,0,w,h);
+    for (var c=0;c<cols;c++){
+      var x0 = c*cw, x1 = x0+cw, s = (c%2===0) ? 1 : -1;
+      for (var k=-4; k<rows+4; k++){
+        var y = k*ph, idx = c*rows + (((k%rows)+rows)%rows);
+        var pts = s>0 ? [[x0,y],[x1,y+cw],[x1,y+cw+ph],[x0,y+ph]] : [[x0,y+cw],[x1,y],[x1,y+ph],[x0,y+cw+ph]];
+        g.save(); g.beginPath(); g.moveTo(pts[0][0],pts[0][1]);
+        for (var p=1;p<4;p++) g.lineTo(pts[p][0],pts[p][1]);
+        g.closePath();
+        var L = tones[idx];
+        g.fillStyle = 'hsl(27,40%,' + L.toFixed(1) + '%)'; g.fill();
+        g.clip();
+        var rr = rng(idx*31+5);
+        for (var n=0;n<9;n++){
+          var off = rr()*ph;
+          g.strokeStyle = 'rgba(' + (rr()<0.5 ? '255,235,210,' : '30,15,5,') + (0.05+rr()*0.08) + ')';
+          g.lineWidth = 0.6 + rr()*1.4;
+          g.beginPath();
+          if (s>0){ g.moveTo(x0, y+off); g.lineTo(x1, y+off+cw); }
+          else { g.moveTo(x0, y+off+cw); g.lineTo(x1, y+off); }
+          g.stroke();
+        }
+        g.restore();
+        g.strokeStyle = 'rgba(20,10,4,.55)'; g.lineWidth = 1.4;
+        g.beginPath(); g.moveTo(pts[0][0],pts[0][1]); for (p=1;p<4;p++) g.lineTo(pts[p][0],pts[p][1]); g.closePath(); g.stroke();
+      }
+    }
+  });
+  var tile = 8 * (0.6/Math.SQRT2);           // texture 1 tile ≈ 3.39 m
+  parquetTex.repeat.set(W/tile, D/tile);
+
+  function flutedTex(){
+    return canvasTex(256, 32, function(g, w, h){
+      var n = 16, sw = w/n;
+      for (var i=0;i<n;i++){
+        var gr = g.createLinearGradient(i*sw,0,(i+1)*sw,0);
+        gr.addColorStop(0,'#cfc8bd'); gr.addColorStop(0.45,'#fbf8f2'); gr.addColorStop(1,'#bdb5a9');
+        g.fillStyle = gr; g.fillRect(i*sw,0,sw,h);
+      }
+    });
+  }
+  var channelTex = canvasTex(256, 16, function(g, w, h){
+    var n = 8, sw = w/n;
+    for (var i=0;i<n;i++){
+      var gr = g.createLinearGradient(i*sw,0,(i+1)*sw,0);
+      gr.addColorStop(0,'#9aa6ae'); gr.addColorStop(0.18,'#c8d1d7'); gr.addColorStop(0.5,'#d3dbe0'); gr.addColorStop(0.82,'#c8d1d7'); gr.addColorStop(1,'#98a3ab');
+      g.fillStyle = gr; g.fillRect(i*sw,0,sw,h);
+    }
+  });
+  var houndTex = canvasTex(64, 64, function(g, w, h){
+    g.fillStyle = '#f2efe9'; g.fillRect(0,0,w,h); g.fillStyle = '#24221f';
+    var s = 16;
+    for (var i=0;i<4;i++) for (var j=0;j<4;j++){
+      var x = i*s, y = j*s;
+      g.fillRect(x, y, s/2, s/2);
+      g.beginPath(); g.moveTo(x+s/2, y); g.lineTo(x+s*0.75, y); g.lineTo(x+s/2, y+s/4); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(x, y+s/2); g.lineTo(x+s/4, y+s/2); g.lineTo(x, y+s*0.75); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(x+s/2, y+s/2); g.lineTo(x+s/2, y+s*0.75); g.lineTo(x+s*0.25, y+s/2); g.closePath(); g.fill();
+    }
+  });
+  houndTex.repeat.set(3,3);
+
+  // ---------- materials ----------
+  var M = {
+    wall: mat('#ECE6DC', {roughness:0.95}),
+    ceil: mat('#F7F5F1', {roughness:0.95}),
+    trim: mat('#F5F3EF', {roughness:0.6}),
+    floor: new THREE.MeshStandardMaterial({map: parquetTex, roughness:0.55, metalness:0}),
+    bed: mat('#E8E2D8', {roughness:0.7}),
+    bedFront: mat('#EEE9E1', {roughness:0.6}),
+    dark: mat('#2b2622', {roughness:0.6}),
+    sheet: mat('#F6F4F0', {roughness:0.95}),
+    duvet: mat('#F1EDE6', {roughness:1}),
+    throwM: mat('#BFB2A1', {roughness:1}),
+    pillow: mat('#FAF8F5', {roughness:1}),
+    hound: new THREE.MeshStandardMaterial({map: houndTex, roughness:1}),
+    head: new THREE.MeshStandardMaterial({map: channelTex, roughness:0.95}),
+    oak: mat('#C49A6C', {roughness:0.55}),
+    shelf: mat('#E9E3D8', {roughness:0.7}),
+    closetWall: mat('#E4DBCD', {roughness:0.95}),
+    metal: mat('#CFCAC2', {roughness:0.3, metalness:0.7}),
+    rug: mat('#D8D0C3', {roughness:1}),
+    door: mat('#F3F1EC', {roughness:0.5}),
+    led: new THREE.MeshStandardMaterial({color: col('#ffe7c2'), emissive: col('#ffd9a0'), emissiveIntensity: 0.9, roughness:0.4}),
+    lamp: new THREE.MeshStandardMaterial({color: col('#fffaf0'), emissive: col('#fff1d6'), emissiveIntensity: 0.6, roughness:0.4})
+  };
+  var glassTex = flutedTex(); glassTex.repeat.set(3,1);
+  M.glass = new THREE.MeshStandardMaterial({map: glassTex, transparent:true, opacity:0.62, roughness:0.25, emissive: col('#4a3a26'), emissiveIntensity: 0.25, side: THREE.DoubleSide});
+
+  // ---------- room shell (walls hide when the camera is behind them) ----------
+  var wallDefs = [];
+  function wallGroup(n, p){ var grp = new THREE.Group(); scene.add(grp); wallDefs.push({grp:grp, n:new THREE.Vector3(n[0],n[1],n[2]), p:new THREE.Vector3(p[0],p[1],p[2])}); return grp; }
+  function plane(w,h,m,pos,rx,ry,parent){
+    var me = new THREE.Mesh(new THREE.PlaneGeometry(w,h), m);
+    me.position.set(pos[0],pos[1],pos[2]); me.rotation.set(rx||0, ry||0, 0);
+    me.receiveShadow = true; parent.add(me); return me;
+  }
+  var gFront = wallGroup([0,0,1],[0,0,0]);
+  var gDoor  = wallGroup([0,0,-1],[0,0,D]);
+  var gLeft  = wallGroup([1,0,0],[0,0,0]);
+  var gRight = wallGroup([-1,0,0],[W,0,0]);
+  var gCeil  = wallGroup([0,-1,0],[0,H,0]);
+
+  plane(W,H,M.wall,[W/2,H/2,0],0,0,gFront);
+  plane(2.60,H,M.wall,[1.30,H/2,D],0,Math.PI,gDoor);
+  plane(0.85,H-2.17,M.wall,[3.025,(2.17+H)/2,D],0,Math.PI,gDoor);
+  plane(0.19,H,M.wall,[3.545,H/2,D],0,Math.PI,gDoor);
+  plane(D,H,M.wall,[0,H/2,D/2],0,Math.PI/2,gLeft);
+  plane(D,H,M.wall,[W,H/2,D/2],0,-Math.PI/2,gRight);
+  plane(W,D,M.ceil,[W/2,H,D/2],Math.PI/2,0,gCeil);
+  var floor = new THREE.Mesh(new THREE.PlaneGeometry(W,D), M.floor);
+  floor.rotation.x = -Math.PI/2; floor.position.set(W/2,0,D/2); floor.receiveShadow = true; scene.add(floor);
+
+  // skirting, tyaga (5 cm) and slatted frieze per wall
+  var slatGeo = new THREE.BoxGeometry(0.014, 0.13, 0.012);
+  var dummy = new THREE.Object3D();
+  function frieze(parent, axis, a0, a1, fixed, inward){
+    var step = 0.034, n = Math.floor((a1-a0)/step);
+    var im = new THREE.InstancedMesh(slatGeo, M.trim, n);
+    for (var i=0;i<n;i++){
+      var a = a0 + step*(i+0.5);
+      if (axis==='x') dummy.position.set(a, 2.675, fixed + inward*0.008);
+      else { dummy.position.set(fixed + inward*0.008, 2.675, a); }
+      dummy.rotation.set(0, axis==='x' ? 0 : Math.PI/2, 0);
+      dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix);
+    }
+    im.castShadow = true; parent.add(im);
+  }
+  // front wall (z=0)
+  bx(0,W,0,0.08,0,0.012,M.trim,gFront); bx(0,W,2.75,2.80,0,0.05,M.trim,gFront); frieze(gFront,'x',0,W,0,1);
+  // door wall (z=D)
+  bx(0,2.54,0,0.08,D-0.012,D,M.trim,gDoor); bx(3.51,W,0,0.08,D-0.012,D,M.trim,gDoor);
+  bx(0,W,2.75,2.80,D-0.05,D,M.trim,gDoor); frieze(gDoor,'x',0,W,D,-1);
+  bx(2.54,2.60,0,2.24,D-0.018,D,M.trim,gDoor); bx(3.45,3.51,0,2.24,D-0.018,D,M.trim,gDoor); bx(2.54,3.51,2.17,2.24,D-0.018,D,M.trim,gDoor);
+  // left wall (x=0)
+  bx(0,0.012,0,0.08,0,D,M.trim,gLeft); bx(0,0.05,2.75,2.80,0,D,M.trim,gLeft); frieze(gLeft,'z',0,D,0,1);
+  // right wall (x=W)
+  bx(W-0.012,W,0,0.08,1.20,D,M.trim,gRight); bx(W-0.05,W,2.75,2.80,0,D,M.trim,gRight); frieze(gRight,'z',0,D,W,-1);
+
+  // ================= 3-VARIANT: «П» shkaf — karavot boshi chap devorda =================
+  var frontM  = mat('#E6DFD3', {roughness:0.75});   // och bej matt eshiklar
+  var bodyM   = mat('#DCD4C7', {roughness:0.8});
+  var innerM  = mat('#EBE6DE', {roughness:0.85});
+  var handleM = mat('#1E1C1A', {roughness:0.35, metalness:0.5});
+  var softM   = mat('#D9D2C6', {roughness:1});
+  var clothCols = ['#E7E1D6','#CFC6B8','#8E8579','#3C3A37','#B7AE9C','#6E7461','#F0ECE4','#A99A86','#2F3135'];
+  var rC = rng(11);
+  var TOP = H - 0.005;
+  var anims = [];
+  function addAnim(obj, axis, openVal){ var a = {obj:obj, axis:axis, cur:0, target:0, open:openVal}; anims.push(a); return a; }
+  function rodZ(y, x, z0, z1){ var m = new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,z1-z0,12), M.metal); m.rotation.x = Math.PI/2; m.position.set(x, y, (z0+z1)/2); scene.add(m); }
+  function hangAlongZ(y, x0, x1, z0, z1, n){
+    var step = (z1-z0)/n;
+    for (var i=0;i<n;i++){
+      if (rC() < 0.12) continue;
+      var z = z0 + step*(i+0.5), L = 0.6 + rC()*0.35;
+      bx(x0, x1, y-L, y-0.06, z-0.015, z+0.015, mat(clothCols[Math.floor(rC()*clothCols.length)], {roughness:1}));
+    }
+  }
+  // eshik: sharnir (hz) atrofida aylanadi; dirX = eshik qaysi tomonga qaragan (+1 x+, -1 x-); len>0 eshik z+ tomonga cho'ziladi
+  var cabAnims = [];
+  function door(xFace, dirX, hz, len, y0, y1){
+    var p = new THREE.Group(); p.position.set(xFace + dirX*0.009, 0, hz); scene.add(p);
+    var s = len > 0 ? 1 : -1, a = Math.abs(len);
+    bx(-0.009, 0.009, y0, y1, s>0 ? 0.002 : -a+0.002, s>0 ? a-0.002 : -0.002, frontM, p);
+    var hzr = s*(a-0.05);
+    bx(dirX>0 ? 0.009 : -0.021, dirX>0 ? 0.021 : -0.009, 0.95, 1.55, hzr-0.008, hzr+0.008, handleM, p);
+    cabAnims.push(addAnim(p, 'y', 1.45*dirX*s));
+  }
+
+  // ---------- ikki yondagi shkaf ustunlari (0.55 eni, 0.60 chuqurligi) ----------
+  var CD = 0.60;
+  [{z0:0, z1:0.55, hz:0, len:0.55}, {z0:2.33, z1:D, hz:D, len:-0.55}].forEach(function(c){
+    var z0 = c.z0, z1 = c.z1, zc = (z0+z1)/2;
+    bx(0,CD,0,TOP,z0,z0+0.018,bodyM); bx(0,CD,0,TOP,z1-0.018,z1,bodyM);
+    bx(0,CD,TOP-0.018,TOP,z0,z1,bodyM);
+    bx(0,0.012,0,TOP,z0,z1,innerM);
+    bx(0.04,CD-0.02,0,0.05,z0+0.018,z1-0.018,M.dark);
+    bx(0.012,CD,0.05,0.55,z0+0.018,z1-0.018,innerM);                 // tortmalar qutisi
+    [[0.06,0.295],[0.305,0.545]].forEach(function(r){
+      bx(CD,CD+0.018,r[0],r[1],z0+0.02,z1-0.02,frontM);
+      bx(CD+0.018,CD+0.03,r[1]-0.045,r[1]-0.035,zc-0.09,zc+0.09,handleM,null,true);
+    });
+    bx(0.012,CD,0.55,0.57,z0+0.018,z1-0.018,bodyM);                  // tumbochka tokchasi
+    bx(0.012,CD,0.85,0.87,z0+0.018,z1-0.018,bodyM);
+    bx(0.04,CD-0.04,0.843,0.85,z0+0.04,z1-0.04,M.led,null,true);
+    // ichi: ilgich + 2 javon
+    rodZ(1.85, 0.30, z0+0.018, z1-0.018);
+    hangAlongZ(1.85, 0.07, 0.53, z0+0.03, z1-0.03, 9);
+    [2.15, 2.47].forEach(function(y){ bx(0.012,CD-0.01,y,y+0.018,z0+0.018,z1-0.018,innerM); });
+    door(CD, 1, c.hz, c.len, 0.875, TOP-0.003);
+  });
+
+  // ---------- karavot ustida «ko'prik»: 4 ta quti + LED li ochiq tokcha ----------
+  var BR0 = 0.55, BR1 = 2.33, BRD = 0.40, BQ = (BR1-BR0)/4;
+  bx(0,BRD,2.00,TOP,BR0,BR1,bodyM);
+  for (var q=0;q<4;q++){ var qa = BR0 + q*BQ; bx(BRD,BRD+0.018,2.003,TOP-0.003,qa+0.0015,qa+BQ-0.0015,frontM); }
+  bx(0,0.012,1.64,2.00,BR0,BR1,mat('#EFE6D2',{roughness:0.9}));
+  bx(0,0.34,1.64,1.66,BR0,BR1,bodyM);
+  for (q=1;q<4;q++){ var qd = BR0 + q*BQ; bx(0.012,0.34,1.66,2.00,qd-0.009,qd+0.009,bodyM); }
+  bx(0.28,0.32,1.993,2.0,BR0+0.01,BR1-0.01,M.led,null,true);
+  var nicheLight = new THREE.PointLight(col('#ffd9a8'), 0.15, 1.8); nicheLight.position.set(0.25,1.82,1.44); scene.add(nicheLight);
+  // tokchadagi mayda narsalar
+  var rN = rng(23);
+  [[0.62,0.85],[1.52,1.74]].forEach(function(seg){
+    var z = seg[0];
+    while (z < seg[1]){ var t = 0.025 + rN()*0.02, hb = 0.16 + rN()*0.07;
+      bx(0.06,0.24,1.66,1.66+hb,z,z+t,mat(['#E9E4DA','#C2B5A2','#A89A86','#F3F0EA'][Math.floor(rN()*4)],{roughness:0.8})); z += t + 0.004; }
+  });
+  var vase = new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.035,0.18,20), M.trim); vase.position.set(0.17,1.75,1.20); vase.castShadow = true; scene.add(vase);
+  var vase2 = new THREE.Mesh(new THREE.SphereGeometry(0.06,20,14), mat('#C9BBA6')); vase2.position.set(0.17,1.72,2.05); scene.add(vase2);
+
+  // ---------- karavot boshidagi tik yumshoq panellar ----------
+  var PN = 8, PW = (BR1-BR0)/PN;
+  for (var pi=0; pi<PN; pi++){ var pa = BR0 + pi*PW; bx(0,0.055,0.34,1.635,pa+0.004,pa+PW-0.004,softM); }
+
+  // ---------- ko'tariladigan karavot 2.10 × 1.75, ostida bo'limli quti ----------
+  var BZ0 = 0.565, BZ1 = 2.315, BZc = (BZ0+BZ1)/2, BXH = 0.06, BXF = 2.16;
+  var baseM = mat('#D8D0C3', {roughness:0.95});
+  bx(BXH+0.04,BXF-0.04,0,0.04,BZ0+0.04,BZ1-0.04,M.dark);
+  bx(BXH,BXF,0.04,0.06,BZ0,BZ1,innerM);
+  bx(BXH,BXH+0.04,0.06,0.32,BZ0,BZ1,baseM);
+  bx(BXF-0.04,BXF,0.06,0.32,BZ0,BZ1,baseM);
+  bx(BXH,BXF,0.04,0.32,BZ0,BZ0+0.04,baseM);
+  bx(BXH,BXF,0.04,0.32,BZ1-0.04,BZ1,baseM);
+  bx(BXH+0.04,BXF-0.04,0.06,0.28,BZc-0.008,BZc+0.008,innerM);
+  [0.80,1.48].forEach(function(x){ bx(x-0.008,x+0.008,0.06,0.28,BZ0+0.04,BZ1-0.04,innerM); });
+  var lid = new THREE.Group(); lid.position.set(BXH+0.04, 0.32, 0); scene.add(lid);
+  var LL = BXF - BXH - 0.04;
+  bx(-0.04,LL,0,0.02,BZ0,BZ1,baseM,lid);                              // qopqoq
+  bx(-0.03,LL-0.01,0.02,0.24,BZ0+0.01,BZ1-0.01,M.sheet,lid);          // matras
+  bx(0.50,LL,0.24,0.29,BZ0-0.005,BZ1+0.005,M.duvet,lid);              // ko'rpa
+  bx(0.50,LL,0.06,0.29,BZ0-0.02,BZ0-0.005,M.duvet,lid);
+  bx(0.50,LL,0.06,0.29,BZ1+0.005,BZ1+0.02,M.duvet,lid);
+  bx(LL,LL+0.015,0.06,0.29,BZ0-0.02,BZ1+0.02,M.duvet,lid);
+  bx(LL-0.55,LL+0.02,0.29,0.305,BZ0-0.025,BZ1+0.025,M.throwM,lid);     // pled
+  function ellipIn(p,sx,sy,sz,m,x,y,z,rz){ var e = new THREE.Mesh(new THREE.SphereGeometry(1,28,18), m); e.scale.set(sx,sy,sz); e.position.set(x,y,z); e.rotation.z = rz||0; e.castShadow = true; e.receiveShadow = true; p.add(e); return e; }
+  ellipIn(lid,0.08,0.24,0.34,M.pillow,0.12,0.40,BZc-0.42,0.28);
+  ellipIn(lid,0.08,0.24,0.34,M.pillow,0.12,0.40,BZc+0.42,0.28);
+  ellipIn(lid,0.07,0.19,0.22,M.hound,0.25,0.355,BZc-0.30,0.22);
+  ellipIn(lid,0.07,0.19,0.22,M.hound,0.25,0.355,BZc+0.30,0.22);
+  var lidAnim = addAnim(lid, 'z', 0.72);
+
+  // ---------- o'ng devorda 2 eshikli shkaf 1.20 × 0.60 ----------
+  var WX0 = 3.04, WZ1 = 1.20;
+  bx(WX0,W,0,TOP,0,0.018,bodyM); bx(WX0,W,0,TOP,WZ1-0.018,WZ1,bodyM); bx(WX0,W,TOP-0.018,TOP,0,WZ1,bodyM);
+  bx(W-0.012,W,0,TOP,0,WZ1,innerM);
+  bx(WX0+0.02,W-0.04,0,0.05,0.018,WZ1-0.018,M.dark);
+  bx(WX0+0.04,W-0.012,0.05,0.46,0.018,WZ1-0.018,innerM);
+  [[0.07,0.26],[0.27,0.455]].forEach(function(r){
+    bx(WX0+0.022,WX0+0.04,r[0],r[1],0.03,WZ1-0.03,frontM);
+    bx(WX0+0.01,WX0+0.022,r[1]-0.045,r[1]-0.035,WZ1/2-0.12,WZ1/2+0.12,handleM,null,true);
+  });
+  rodZ(1.95, (WX0+W)/2, 0.018, WZ1-0.018);
+  hangAlongZ(1.95, WX0+0.07, W-0.07, 0.04, WZ1-0.04, 18);
+  [2.20, 2.50].forEach(function(y){ bx(WX0+0.02,W-0.012,y,y+0.018,0.018,WZ1-0.018,innerM); });
+  door(WX0, -1, 0, 0.60, 0.06, TOP-0.003);
+  door(WX0, -1, WZ1, -0.60, 0.06, TOP-0.003);
+
+  // ---------- dars stoli — o'ng devorda, shkaf bilan eshik oralig'ida ----------
+  var DZ0 = 1.21, DZ1 = 1.99, DX0 = 3.14, DZc = (DZ0+DZ1)/2;
+  bx(DX0,W,0.73,0.76,DZ0,DZ1,frontM);
+  bx(DX0+0.02,W,0.60,0.73,DZ0,DZ1,bodyM);
+  bx(DX0+0.002,DX0+0.02,0.61,0.72,DZ0+0.01,DZ1-0.01,frontM);
+  bx(DX0-0.01,DX0+0.002,0.655,0.665,DZc-0.09,DZc+0.09,handleM,null,true);
+  bx(3.36,W,1.30,1.32,DZ0,DZ1,frontM);
+  bx(3.38,3.40,1.293,1.30,DZ0+0.02,DZ1-0.02,M.led,null,true);
+  var rB = rng(41), bz = DZ0+0.30;
+  while (bz < DZ1-0.05){ var bt = 0.025 + rB()*0.02, bh = 0.17 + rB()*0.07;
+    bx(3.42,3.62,1.32,1.32+bh,bz,bz+bt,mat(['#E9E4DA','#D8CFC0','#C2B5A2','#8C8A84'][Math.floor(rB()*4)],{roughness:0.8})); bz += bt + 0.003; }
+  var lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.07,0.02,24), M.trim); lampBase.position.set(3.50,0.77,1.38); scene.add(lampBase);
+  var lampStem = new THREE.Mesh(new THREE.CylinderGeometry(0.01,0.01,0.26,12), M.trim); lampStem.position.set(3.50,0.90,1.38); scene.add(lampStem);
+  var dome = new THREE.Mesh(new THREE.SphereGeometry(0.11,28,14,0,Math.PI*2,0,Math.PI/2), M.lamp); dome.position.set(3.50,1.02,1.38); dome.castShadow = true; scene.add(dome);
+  var deskLight = new THREE.PointLight(col('#ffd9a8'), 0.0, 2.0); deskLight.position.set(3.46,0.96,1.42); scene.add(deskLight);
+  bx(3.30,3.62,0.76,0.775,1.62,1.92,mat('#D6D7DA',{roughness:0.35, metalness:0.6}));   // daftar/noutbuk
+  // puf (videodagidek)
+  bx(2.70,3.06,0,0.40,1.44,1.80,softM);
+  bx(2.705,3.055,0.40,0.43,1.445,1.795,mat('#E2DCD2',{roughness:1}));
+
+  // ---------- zigzag gilam ----------
+  var rugTex = canvasTex(512, 512, function(g, w, h){
+    g.fillStyle = '#EEEAE3'; g.fillRect(0,0,w,h);
+    g.strokeStyle = '#A8A296'; g.lineWidth = 7; g.lineJoin = 'miter';
+    for (var y=-64; y<h+64; y+=32){ g.beginPath(); for (var x=0; x<=w; x+=64){ g.lineTo(x, y + ((x/64)%2 ? 32 : 0)); } g.stroke(); }
+  });
+  rugTex.repeat.set(2.2, 2.6);
+  bx(1.25,2.98,0,0.012,0.30,2.02,new THREE.MeshStandardMaterial({map: rugTex, roughness:1}),null,true).receiveShadow = true;
+
+  // ---------- halqa qandil ----------
+  var CHX = 1.55, CHZ = 1.44;
+  var mount = new THREE.Mesh(new THREE.CylinderGeometry(0.10,0.10,0.03,32), M.trim); mount.position.set(CHX,H-0.015,CHZ); scene.add(mount);
+  var ring = new THREE.Mesh(new THREE.TorusGeometry(0.24,0.022,16,64), M.lamp); ring.rotation.x = Math.PI/2; ring.position.set(CHX,2.42,CHZ); scene.add(ring);
+  var wireM = mat('#9A958D', {roughness:0.5});
+  function wire(x, y, z){ var w = new THREE.Mesh(new THREE.CylinderGeometry(0.002,0.002,H-y,6), wireM); w.position.set(x,(H+y)/2,z); scene.add(w); }
+  [[0.24,0],[-0.24,0],[0,0.24],[0,-0.24]].forEach(function(o){ wire(CHX+o[0],2.42,CHZ+o[1]); });
+  [[0.08,2.24,0.05],[-0.08,2.17,-0.03],[0.01,2.30,-0.09]].forEach(function(o){
+    var b = new THREE.Mesh(new THREE.SphereGeometry(0.055,20,14), M.lamp); b.position.set(CHX+o[0],o[1],CHZ+o[2]); scene.add(b);
+    wire(CHX+o[0],o[1]+0.05,CHZ+o[2]);
+  });
+  var ceilLight = new THREE.PointLight(col('#fff3e2'), 0.6, 0, 1);
+  ceilLight.position.set(CHX,2.30,CHZ); ceilLight.castShadow = true;
+  ceilLight.shadow.mapSize.set(1024,1024); ceilLight.shadow.bias = -0.003; ceilLight.shadow.radius = 4;
+  scene.add(ceilLight);
+  var hemi = new THREE.HemisphereLight(col('#fff6ea'), col('#7a5a3c'), 0.55); scene.add(hemi);
+  var amb = new THREE.AmbientLight(col('#ffffff'), 0.16); scene.add(amb);
+
+  // ---------- door (0.85 × 2.17, opens inward against the right wall) ----------
+  var pivot = new THREE.Group(); pivot.position.set(3.45, 0, D-0.02); scene.add(pivot);
+  bx(-0.85,0,0.005,2.165,-0.02,0.02,M.door,pivot);
+  bx(-0.75,-0.10,1.20,2.02,-0.026,-0.02,M.trim,pivot);
+  bx(-0.75,-0.10,0.12,1.08,-0.026,-0.02,M.trim,pivot);
+  var handle = new THREE.Mesh(new THREE.CylinderGeometry(0.009,0.009,0.13,12), M.metal); handle.rotation.z = Math.PI/2; handle.position.set(-0.72,1.0,-0.05); pivot.add(handle);
+  var handle2 = handle.clone(); handle2.position.z = 0.05; pivot.add(handle2);
+  var doorOpen = true, doorAngle = -Math.PI/2*0.96, doorTarget = doorAngle;
+  pivot.rotation.y = doorAngle;
+
+  // ---------- views ----------
+  var views = {
+    corner:   {p:[5.0,3.6,4.6], t:[1.0,1.0,1.2]},
+    door:     {p:[3.02,1.62,3.75], t:[0.6,1.2,1.30]},
+    bed:      {p:[2.95,1.45,1.44], t:[0.2,1.30,1.44]},
+    wardrobe: {p:[1.30,1.55,1.35], t:[3.30,1.30,0.55]},
+    desk:     {p:[2.45,1.55,1.75], t:[3.45,0.95,1.60]},
+    top:      {p:[1.82,6.4,1.445], t:[1.82,0,1.44]}
+  };
+  var tween = null;
+  function goView(name, instant){
+    var v = views[name];
+    document.querySelectorAll('[data-view]').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.view===name ? 'true' : 'false'); });
+    var to = {p:new THREE.Vector3().fromArray(v.p), t:new THREE.Vector3().fromArray(v.t)};
+    if (instant || reduceMotion){ camera.position.copy(to.p); controls.target.copy(to.t); controls.update(); tween = null; return; }
+    tween = {from:{p:camera.position.clone(), t:controls.target.clone()}, to:to, t0:performance.now(), dur:900};
+  }
+  controls.addEventListener('start', function(){ tween = null; });
+  document.querySelectorAll('[data-view]').forEach(function(b){ b.addEventListener('click', function(){ goView(b.dataset.view); }); });
+
+  var tDoor = document.getElementById('t-door');
+  tDoor.addEventListener('click', function(){
+    doorOpen = !doorOpen; doorTarget = doorOpen ? -Math.PI/2*0.96 : 0;
+    tDoor.setAttribute('aria-pressed', doorOpen ? 'true' : 'false');
+    tDoor.textContent = doorOpen ? 'Eshik ochiq' : 'Eshik yopiq';
+  });
+  function toggler(id, list, onTxt, offTxt){
+    var b = document.getElementById(id), on = false;
+    b.addEventListener('click', function(){
+      on = !on; list.forEach(function(a){ a.target = on ? a.open : 0; });
+      b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.textContent = on ? onTxt : offTxt;
+    });
+  }
+  toggler('t-cab', cabAnims, 'Shkaflar ochiq', 'Shkaflar yopiq');
+  toggler('t-lift', [lidAnim], "Karavot ko'tarilgan", 'Karavot yopiq');
+  var night = false, tNight = document.getElementById('t-night');
+  function applyLight(){
+    hemi.intensity = night ? 0.10 : 0.55;
+    amb.intensity = night ? 0.04 : 0.16;
+    ceilLight.intensity = night ? 0.0 : 0.6;
+    M.lamp.emissiveIntensity = night ? 0.25 : 0.6;
+    nicheLight.intensity = night ? 0.6 : 0.15;
+    if (deskLight) deskLight.intensity = night ? 0.5 : 0.0;
+    M.led.emissiveIntensity = night ? 1.6 : 0.9;
+    M.glass.emissiveIntensity = night ? 0.6 : 0.25;
+  }
+  tNight.addEventListener('click', function(){ night = !night; tNight.setAttribute('aria-pressed', night ? 'true' : 'false'); applyLight(); });
+  applyLight();
+
+  // ---------- sizing / loop ----------
+  function resize(){
+    var w = stage.clientWidth, h = stage.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w/h;
+    camera.fov = w/h < 0.8 ? 68 : 55;
+    camera.updateProjectionMatrix();
+  }
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(stage); else window.addEventListener('resize', resize);
+  resize();
+  goView('corner', true);
+
+  var tmp = new THREE.Vector3();
+  function ease(x){ return x<0.5 ? 4*x*x*x : 1-Math.pow(-2*x+2,3)/2; }
+  function loop(now){
+    if (tween){
+      var k = Math.min(1, (now - tween.t0)/tween.dur), e = ease(k);
+      camera.position.lerpVectors(tween.from.p, tween.to.p, e);
+      controls.target.lerpVectors(tween.from.t, tween.to.t, e);
+      if (k >= 1) tween = null;
+    }
+    if (Math.abs(doorTarget - doorAngle) > 0.001){
+      doorAngle += (doorTarget - doorAngle) * (reduceMotion ? 1 : 0.12);
+      pivot.rotation.y = doorAngle;
+    }
+    for (var ai=0; ai<anims.length; ai++){
+      var an = anims[ai];
+      if (Math.abs(an.target - an.cur) > 0.001){ an.cur += (an.target - an.cur) * (reduceMotion ? 1 : 0.12); an.obj.rotation[an.axis] = an.cur; }
+    }
+    controls.update();
+    for (var i=0;i<wallDefs.length;i++){
+      var wd = wallDefs[i];
+      tmp.copy(camera.position).sub(wd.p);
+      wd.grp.visible = tmp.dot(wd.n) > 0;
+    }
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  var hint = document.getElementById('hint');
+  renderer.domElement.addEventListener('pointerdown', function(){ hint.hidden = true; }, {once:true});
+})();
+</script>
+</body>
+</html>
