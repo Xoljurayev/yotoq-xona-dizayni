@@ -214,7 +214,7 @@ body{margin:0}
       <section class="card">
         <h2>Saqlash joyi</h2>
         <ul class="todo">
-          <li><b>2 ta shkaf</b> (0.93 × 0.60, shiftgacha): karavot tomondagi yarmida pastda 2 tortma va tumbochka tokchasi; chetdagi yarmida eshik polgacha tushgan (uzun kiyim uchun); ichida ilgich va 2 javon.</li>
+          <li><b>2 ta shkaf</b> (0.93 × 0.60, shiftgacha): karavot tomondagi yarmida pastda 2 tortma va karavotga ochiq tumbochka tokchasi; chetdagi yarmida eshik polgacha tushgan (uzun kiyim uchun); ichida ilgich va 2 javon.</li>
           <li><b>Karavot ustida</b> 4 ta quti, ostida LED li ochiq tokcha.</li>
           <li><b>Karavot ostida</b> bo'limli quti, matras ko'tariladi.</li>
         </ul>
@@ -495,7 +495,10 @@ body{margin:0}
     var b0 = bed>0 ? zc+0.009 : z0+0.018, b1 = bed>0 ? z1-0.018 : zc-0.009;   // karavot tomondagi yarmining ichi
     var o0 = bed>0 ? z0+0.018 : zc+0.009, o1 = bed>0 ? zc-0.009 : z1-0.018;   // chetdagi yarmining ichi
     var f0 = bed>0 ? zc+0.002 : z0+0.02,  f1 = bed>0 ? z1-0.02  : zc-0.002, fc = (f0+f1)/2;   // tortma yuzlari
-    bx(0,CD,0,TOP,z0,z0+0.018,bodyM); bx(0,CD,0,TOP,z1-0.018,z1,bodyM);
+    var s0 = bed>0 ? z1-0.018 : z0, n0 = bed>0 ? z0 : z1-0.018;       // s0 = karavot tomondagi yon devor, n0 = chetdagi
+    bx(0,CD,0,TOP,n0,n0+0.018,bodyM);
+    bx(0,CD,0,0.55,s0,s0+0.018,bodyM); bx(0,CD,0.87,TOP,s0,s0+0.018,bodyM);   // tokcha balandligida yon devor yo'q — karavotga ochiq (Islom, 2026-11-27)
+    var e0 = bed>0 ? b0 : z0, e1 = bed>0 ? z1 : b1;                    // tokcha taxtalari karavot tomonda chetigacha
     bx(0,CD,TOP-0.018,TOP,z0,z1,bodyM);
     bx(0,0.012,0,TOP,z0,z1,innerM);
     bx(0.04,CD-0.02,0,0.05,z0+0.018,z1-0.018,M.dark);
@@ -506,8 +509,8 @@ body{margin:0}
       bx(CD,CD+0.018,r[0],r[1],f0,f1,frontM);
       bx(CD+0.018,CD+0.03,r[1]-0.045,r[1]-0.035,fc-0.09,fc+0.09,handleM,null,true);
     });
-    bx(0.012,CD,0.55,0.57,b0,b1,bodyM);                              // tumbochka tokchasi
-    bx(0.012,CD,0.85,0.87,b0,b1,bodyM);
+    bx(0.012,CD,0.55,0.57,e0,e1,bodyM);                              // tumbochka tokchasi
+    bx(0.012,CD,0.85,0.87,e0,e1,bodyM);
     bx(0.04,CD-0.04,0.843,0.85,b0+0.022,b1-0.022,M.led,null,true);
     // ichi: ilgich + 2 javon; chetdagi yarmida uzun kiyim
     rodZ(1.85, 0.30, z0+0.018, z1-0.018);
