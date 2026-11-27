@@ -214,7 +214,7 @@ body{margin:0}
       <section class="card">
         <h2>Saqlash joyi</h2>
         <ul class="todo">
-          <li><b>2 ta shkaf</b> (0.93 × 0.60, shiftgacha): pastda 2 tortma, tumbochka tokchasi, ichida ilgich va 2 javon.</li>
+          <li><b>2 ta shkaf</b> (0.93 × 0.60, shiftgacha): karavot tomondagi yarmida pastda 2 tortma va tumbochka tokchasi; chetdagi yarmida eshik polgacha tushgan (uzun kiyim uchun); ichida ilgich va 2 javon.</li>
           <li><b>Karavot ustida</b> 4 ta quti, ostida LED li ochiq tokcha.</li>
           <li><b>Karavot ostida</b> bo'limli quti, matras ko'tariladi.</li>
         </ul>
@@ -462,11 +462,11 @@ body{margin:0}
   var anims = [];
   function addAnim(obj, axis, openVal){ var a = {obj:obj, axis:axis, cur:0, target:0, open:openVal}; anims.push(a); return a; }
   function rodZ(y, x, z0, z1){ var m = new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,z1-z0,12), M.metal); m.rotation.x = Math.PI/2; m.position.set(x, y, (z0+z1)/2); scene.add(m); }
-  function hangAlongZ(y, x0, x1, z0, z1, n){
+  function hangAlongZ(y, x0, x1, z0, z1, n, uzun){
     var step = (z1-z0)/n;
     for (var i=0;i<n;i++){
       if (rC() < 0.12) continue;
-      var z = z0 + step*(i+0.5), L = 0.6 + rC()*0.35;
+      var z = z0 + step*(i+0.5), L = uzun ? 1.15 + rC()*0.45 : 0.6 + rC()*0.35;
       bx(x0, x1, y-L, y-0.06, z-0.015, z+0.015, mat(clothCols[Math.floor(rC()*clothCols.length)], {roughness:1}));
     }
   }
@@ -488,27 +488,35 @@ body{margin:0}
   var realScene = scene; scene = PG;
   // ---------- ikki yondagi shkaflar (0.93 eni, 0.60 chuqurligi, 2 eshik) ----------
   var CD = 0.60;
-  [{z0:-0.38, z1:0.55}, {z0:2.33, z1:3.26}].forEach(function(c){
-    var z0 = c.z0, z1 = c.z1, zc = (z0+z1)/2;
+  // bed: karavot qaysi tomonda (+1 = z1 tomonda, -1 = z0 tomonda).
+  // Karavot tomondagi yarmi: pastda 2 tortma + tumbochka tokchasi. Chetdagi yarmi: eshik polgacha (Islom, 2026-11-27)
+  [{z0:-0.38, z1:0.55, bed:1}, {z0:2.33, z1:3.26, bed:-1}].forEach(function(c){
+    var z0 = c.z0, z1 = c.z1, zc = (z0+z1)/2, bed = c.bed;
+    var b0 = bed>0 ? zc+0.009 : z0+0.018, b1 = bed>0 ? z1-0.018 : zc-0.009;   // karavot tomondagi yarmining ichi
+    var o0 = bed>0 ? z0+0.018 : zc+0.009, o1 = bed>0 ? zc-0.009 : z1-0.018;   // chetdagi yarmining ichi
+    var f0 = bed>0 ? zc+0.002 : z0+0.02,  f1 = bed>0 ? z1-0.02  : zc-0.002, fc = (f0+f1)/2;   // tortma yuzlari
     bx(0,CD,0,TOP,z0,z0+0.018,bodyM); bx(0,CD,0,TOP,z1-0.018,z1,bodyM);
     bx(0,CD,TOP-0.018,TOP,z0,z1,bodyM);
     bx(0,0.012,0,TOP,z0,z1,innerM);
     bx(0.04,CD-0.02,0,0.05,z0+0.018,z1-0.018,M.dark);
-    bx(0.012,CD,0.05,0.55,z0+0.018,z1-0.018,innerM);                 // tortmalar qutisi
+    bx(0.012,CD,0.05,0.87,zc-0.009,zc+0.009,bodyM);                  // o'rtadagi tik to'siq (tokcha balandligigacha)
+    bx(0.012,CD,0.05,0.068,o0,o1,innerM);                            // chetdagi yarmining tagi
+    bx(0.012,CD,0.05,0.55,b0,b1,innerM);                             // tortmalar qutisi
     [[0.06,0.295],[0.305,0.545]].forEach(function(r){
-      bx(CD,CD+0.018,r[0],r[1],z0+0.02,z1-0.02,frontM);
-      bx(CD+0.018,CD+0.03,r[1]-0.045,r[1]-0.035,zc-0.09,zc+0.09,handleM,null,true);
+      bx(CD,CD+0.018,r[0],r[1],f0,f1,frontM);
+      bx(CD+0.018,CD+0.03,r[1]-0.045,r[1]-0.035,fc-0.09,fc+0.09,handleM,null,true);
     });
-    bx(0.012,CD,0.55,0.57,z0+0.018,z1-0.018,bodyM);                  // tumbochka tokchasi
-    bx(0.012,CD,0.85,0.87,z0+0.018,z1-0.018,bodyM);
-    bx(0.04,CD-0.04,0.843,0.85,z0+0.04,z1-0.04,M.led,null,true);
-    // ichi: ilgich + 2 javon
+    bx(0.012,CD,0.55,0.57,b0,b1,bodyM);                              // tumbochka tokchasi
+    bx(0.012,CD,0.85,0.87,b0,b1,bodyM);
+    bx(0.04,CD-0.04,0.843,0.85,b0+0.022,b1-0.022,M.led,null,true);
+    // ichi: ilgich + 2 javon; chetdagi yarmida uzun kiyim
     rodZ(1.85, 0.30, z0+0.018, z1-0.018);
-    hangAlongZ(1.85, 0.07, 0.53, z0+0.03, z1-0.03, 15);
+    hangAlongZ(1.85, 0.07, 0.53, bed>0 ? zc : z0+0.03, bed>0 ? z1-0.03 : zc, 7);
+    hangAlongZ(1.85, 0.07, 0.53, bed>0 ? z0+0.03 : zc, bed>0 ? zc : z1-0.03, 7, true);
     [2.15, 2.47].forEach(function(y){ bx(0.012,CD-0.01,y,y+0.018,z0+0.018,z1-0.018,innerM); });
     var hw = (z1-z0)/2;
-    door(CD, 1, z0, hw, 0.875, TOP-0.003);
-    door(CD, 1, z1, -hw, 0.875, TOP-0.003);
+    door(CD, 1, z0, hw, bed>0 ? 0.06 : 0.875, TOP-0.003);
+    door(CD, 1, z1, -hw, bed>0 ? 0.875 : 0.06, TOP-0.003);
   });
 
   // ---------- karavot ustida «ko'prik»: 4 ta quti + LED li ochiq tokcha ----------
