@@ -215,14 +215,14 @@ body{margin:0}
         <h2>Saqlash joyi</h2>
         <ul class="todo">
           <li><b>2 ta shkaf</b> (0.93 × 0.60, shiftgacha): karavot tomondagi yarmida pastda 2 tortma va karavotga ochiq tumbochka tokchasi; chetdagi yarmida eshik polgacha tushgan (uzun kiyim uchun); ichida ilgich va 2 javon.</li>
-          <li><b>Karavot ustida</b> 4 ta quti, ostida LED li ochiq tokcha.</li>
+          <li><b>Karavot ustida</b> 4 ta quti (0.60 chuqur, yon shkaflar bilan bir tekis), ostida LED li ochiq tokcha.</li>
           <li><b>Karavot ostida</b> bo'limli quti, matras ko'tariladi.</li>
         </ul>
       </section>
       <section class="card">
         <h2>Ranglar va materiallar</h2>
         <div class="sw">
-          <div><i style="background:#F0E4C8"></i>Devor — qaymoq rang aboy</div>
+          <div><i style="background:#F5F3EE"></i>Devor — oq aboy</div>
           <div><i style="background:#C8B9A5"></i>Shkaf eshiklari — iliq kulrang-bej, matt</div>
           <div><i style="background:#C6A078"></i>Korpus va tokchalar — dub</div>
           <div><i style="background:#1E1C1A"></i>Tutqichlar — qora, uzun</div>
@@ -385,11 +385,11 @@ body{margin:0}
   var uvR = rng(99);
   // aboy: qaymoq rang, mayin mato to'qimasi
   var wallTex = canvasTex(256, 256, function(g, w, h){
-    g.fillStyle = '#F0E4C8'; g.fillRect(0,0,w,h);
+    g.fillStyle = '#F5F3EE'; g.fillRect(0,0,w,h);
     var r = rng(17);
     for (var i=0;i<2600;i++){
       var x = r()*w, y = r()*h, L = 4 + r()*14;
-      g.strokeStyle = 'rgba(' + (r()<0.5 ? '255,250,235,' : '150,120,80,') + (0.05 + r()*0.07) + ')';
+      g.strokeStyle = 'rgba(' + (r()<0.5 ? '255,250,235,' : '120,115,105,') + (0.05 + r()*0.07) + ')';
       g.lineWidth = 1;
       g.beginPath(); g.moveTo(x, y);
       if (r()<0.5) g.lineTo(x+L, y); else g.lineTo(x, y+L);
@@ -585,7 +585,7 @@ body{margin:0}
   });
 
   // ---------- karavot ustida «ko'prik»: 4 ta quti + LED li ochiq tokcha ----------
-  var BR0 = 0.55, BR1 = 2.33, BRD = 0.40, BQ = (BR1-BR0)/4;
+  var BR0 = 0.55, BR1 = 2.33, BRD = 0.60, BQ = (BR1-BR0)/4;   // qutilar yon shkaflar bilan bir tekis (Islom, 2026-11-27)
   bx(0,BRD,2.00,TOP,BR0,BR1,bodyM);
   bx(BRD-0.001,BRD+0.002,2.00,TOP,BR0,BR1,M.dark,null,true);       // qutilar orasidagi qora tirqish
   for (var q=0;q<4;q++){ var qa = BR0 + q*BQ; bx(BRD+0.002,BRD+0.02,2.004,TOP-0.003,qa+0.003,qa+BQ-0.003,frontM); }
